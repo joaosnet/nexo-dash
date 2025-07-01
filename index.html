@@ -101,6 +101,11 @@
             z-index: 100;
             display: none;
             max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .panel-title {
@@ -140,6 +145,15 @@
         }
 
         /* Responsividade */
+        @media (max-width: 1024px) {
+            .holographic-panel {
+                max-width: 500px;
+                right: 15px;
+                font-size: 1rem;
+                padding: 1.5rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .loading-logo {
                 font-size: 2rem;
@@ -156,9 +170,14 @@
             .holographic-panel {
                 left: 10px;
                 right: 10px;
+                top: 20px;
+                bottom: 20px;
                 max-width: none;
+                max-height: none;
                 padding: 1.5rem;
                 font-size: 1rem;
+                transform: none;
+                overflow-y: auto;
             }
             
             .panel-title {
@@ -182,6 +201,20 @@
             .holographic-panel {
                 padding: 1rem;
                 font-size: 0.9rem;
+                left: 5px;
+                right: 5px;
+                top: 10px;
+                bottom: 10px;
+            }
+            
+            .panel-title {
+                font-size: 1.3rem;
+            }
+            
+            .holographic-button {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.9rem;
+                margin: 0.3rem;
             }
         }
 
@@ -279,6 +312,25 @@
             padding: 1rem;
             border-radius: 5px;
             margin: 1rem 0;
+        }
+
+        /* Scroll customizado para o painel */
+        .holographic-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .holographic-panel::-webkit-scrollbar-track {
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 4px;
+        }
+
+        .holographic-panel::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.5);
+            border-radius: 4px;
+        }
+
+        .holographic-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 136, 0.7);
         }
 
         /* Numeração de passos */
@@ -572,11 +624,11 @@
                     actionsEl.appendChild(button);
                 });
 
-                // Posicionar painel no centro direito
+                // Mostrar painel (CSS handle positioning)
                 panel.style.display = 'block';
-                panel.style.right = '50px';
-                panel.style.top = '50%';
-                panel.style.transform = 'translateY(-50%)';
+                
+                // Scroll to top of panel content
+                contentEl.scrollTop = 0;
             },
 
             hidePanel() {
@@ -621,10 +673,12 @@
                                 </ol>
                                 <p><strong>Extensões recomendadas:</strong></p>
                                 <ul>
-                                    <li>Python (Microsoft)</li>
-                                    <li>Python Debugger</li>
-                                    <li>Pylance</li>
+                                    <li><strong>Python (Microsoft)</strong>: Suporte completo para Python</li>
+                                    <li><strong>Ruff (Astral Software)</strong>: Linter e formatter super rápido</li>
+                                    <li><strong>Error Lens</strong>: Mostra erros diretamente no código</li>
+                                    <li><strong>Data Wrangler (Microsoft)</strong>: Visualização de dados CSV/Excel</li>
                                 </ul>
+                                <p><em>💡 Essas extensões transformarão seu VS Code numa IDE Python profissional!</em></p>
                             `,
                             actions: [
                                 { label: 'VS Code Instalado', callback: () => ModuleSystem.nextStep() },
@@ -895,9 +949,217 @@ dashboard-cardiaco/<br>
             },
 
             load3DBlueprint() {
+                console.log('Carregando blueprint 3D...');
                 // Criar visualização 3D da estrutura do projeto
                 this.create3DProjectStructure();
+                
+                // Ajustar câmera para mostrar melhor o blueprint
+                this.focusCameraOnBlueprint();
+                
+                console.log('Blueprint 3D carregado, avançando para próximo passo...');
                 this.nextStep();
+            },
+
+            focusCameraOnBlueprint() {
+                // Salvar posição original da câmera
+                const originalPos = { 
+                    x: AppState.camera.position.x, 
+                    y: AppState.camera.position.y, 
+                    z: AppState.camera.position.z 
+                };
+                
+                // Posição otimizada para visualizar o blueprint
+                const targetPos = { x: 6, y: 8, z: 10 };
+                const targetLookAt = { x: 0, y: 2.5, z: 0 };
+                
+                const startTime = Date.now();
+                const duration = 3000;
+                
+                // Adicionar iluminação especial para o blueprint
+                this.addBlueprintLighting();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing suave
+                    const easedProgress = 1 - Math.pow(1 - progress, 3);
+                    
+                    // Interpolar posição da câmera
+                    AppState.camera.position.x = originalPos.x + (targetPos.x - originalPos.x) * easedProgress;
+                    AppState.camera.position.y = originalPos.y + (targetPos.y - originalPos.y) * easedProgress;
+                    AppState.camera.position.z = originalPos.z + (targetPos.z - originalPos.z) * easedProgress;
+                    
+                    // Fazer câmera olhar para o centro do blueprint
+                    AppState.camera.lookAt(
+                        targetLookAt.x,
+                        targetLookAt.y,
+                        targetLookAt.z
+                    );
+                    
+                    // Atualizar controles
+                    AppState.controls.target.set(targetLookAt.x, targetLookAt.y, targetLookAt.z);
+                    AppState.controls.update();
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // Adicionar movimento de câmera orbital suave
+                        this.addCameraOrbit();
+                    }
+                };
+                
+                animate();
+            },
+
+            addBlueprintLighting() {
+                // Luz spotlight focada no blueprint
+                const spotlight = new THREE.SpotLight(0x00ff88, 2, 100, Math.PI / 6, 0.5, 2);
+                spotlight.position.set(0, 15, 5);
+                spotlight.target.position.set(0, 2.5, 0);
+                spotlight.castShadow = true;
+                spotlight.shadow.mapSize.width = 2048;
+                spotlight.shadow.mapSize.height = 2048;
+                spotlight.name = 'blueprint-spotlight';
+                
+                AppState.scene.add(spotlight);
+                AppState.scene.add(spotlight.target);
+                
+                // Luzes de acento coloridas
+                const accentLights = [
+                    { color: 0xff4757, position: [-8, 5, 3] },
+                    { color: 0x3742fa, position: [8, 5, 3] },
+                    { color: 0xffa502, position: [0, 5, -8] }
+                ];
+                
+                accentLights.forEach((light, index) => {
+                    const pointLight = new THREE.PointLight(light.color, 0.8, 20);
+                    pointLight.position.set(...light.position);
+                    pointLight.name = `accent-light-${index}`;
+                    AppState.scene.add(pointLight);
+                });
+            },
+
+            addCameraOrbit() {
+                // Variáveis de controle da órbita
+                let angle = 0;
+                let isOrbiting = true;
+                let orbitAnimationId = null;
+                
+                const radius = 12;
+                const centerY = 8;
+                const speed = 0.3;
+                
+                // Armazenar referência para poder parar depois
+                AppState.cameraOrbit = {
+                    isActive: true,
+                    stop: () => {
+                        isOrbiting = false;
+                        if (orbitAnimationId) {
+                            cancelAnimationFrame(orbitAnimationId);
+                        }
+                        // Reativar controles do usuário
+                        AppState.controls.enabled = true;
+                        console.log('Órbita da câmera parada - controles reativados');
+                    }
+                };
+                
+                // Desabilitar controles durante órbita automática
+                AppState.controls.enabled = false;
+                
+                const orbit = () => {
+                    if (!isOrbiting) return;
+                    
+                    angle += speed * 0.01;
+                    
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    
+                    AppState.camera.position.x = x;
+                    AppState.camera.position.z = z;
+                    AppState.camera.position.y = centerY + Math.sin(angle * 0.5) * 2;
+                    
+                    AppState.camera.lookAt(0, 2.5, 0);
+                    AppState.controls.target.set(0, 2.5, 0);
+                    
+                    // Parar automaticamente após 10 segundos (4π radianos)
+                    if (angle < Math.PI * 4 && isOrbiting) {
+                        orbitAnimationId = requestAnimationFrame(orbit);
+                    } else {
+                        // Parar e reativar controles
+                        AppState.cameraOrbit.stop();
+                    }
+                };
+                
+                // Começar órbita após 1 segundo
+                setTimeout(() => {
+                    if (isOrbiting) {
+                        console.log('Iniciando órbita da câmera - clique e arraste para parar');
+                        this.showOrbitHint();
+                        orbit();
+                    }
+                }, 1000);
+                
+                // Permitir que o usuário pare a órbita clicando e arrastando
+                const stopOrbitOnInteraction = () => {
+                    if (AppState.cameraOrbit && AppState.cameraOrbit.isActive) {
+                        AppState.cameraOrbit.stop();
+                        this.hideOrbitHint();
+                        // Remover listeners após usar
+                        AppState.renderer.domElement.removeEventListener('mousedown', stopOrbitOnInteraction);
+                        AppState.renderer.domElement.removeEventListener('touchstart', stopOrbitOnInteraction);
+                    }
+                };
+                
+                // Adicionar listeners para parar órbita
+                AppState.renderer.domElement.addEventListener('mousedown', stopOrbitOnInteraction);
+                AppState.renderer.domElement.addEventListener('touchstart', stopOrbitOnInteraction);
+            },
+
+            showOrbitHint() {
+                const hint = document.createElement('div');
+                hint.id = 'orbit-hint';
+                hint.style.cssText = `
+                    position: fixed;
+                    bottom: 30px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 255, 136, 0.9);
+                    color: #000;
+                    padding: 1rem 2rem;
+                    border-radius: 25px;
+                    font-size: 1rem;
+                    font-weight: bold;
+                    z-index: 150;
+                    animation: fadeIn 0.5s ease;
+                    border: 2px solid #00ff88;
+                    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+                    text-align: center;
+                `;
+                hint.innerHTML = `
+                    🎥 Visualização Automática Ativa<br>
+                    <span style="font-size: 0.9rem; opacity: 0.8;">Clique e arraste para retomar controle</span>
+                `;
+                
+                document.body.appendChild(hint);
+                
+                // Auto-remover após 8 segundos
+                setTimeout(() => {
+                    this.hideOrbitHint();
+                }, 8000);
+            },
+
+            hideOrbitHint() {
+                const hint = document.getElementById('orbit-hint');
+                if (hint) {
+                    hint.style.opacity = '0';
+                    hint.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        if (hint.parentNode) {
+                            hint.parentNode.removeChild(hint);
+                        }
+                    }, 500);
+                }
             },
 
             create3DProjectStructure() {
@@ -910,124 +1172,693 @@ dashboard-cardiaco/<br>
                 const blueprintGroup = new THREE.Group();
                 blueprintGroup.name = 'project-blueprint';
 
-                // Criar estrutura de pastas em 3D
+                // Criar base holográfica para o blueprint
+                this.createBlueprintBase(blueprintGroup);
+
+                // Estrutura melhorada de pastas em 3D com informações detalhadas
                 const folderStructure = [
-                    { name: 'app/', position: [-3, 3, 0], color: 0x00ff88, type: 'folder' },
-                    { name: 'data/', position: [0, 3, 0], color: 0xff6b6b, type: 'folder' },
-                    { name: 'utils/', position: [3, 3, 0], color: 0x4ecdc4, type: 'folder' },
-                    { name: 'tests/', position: [-3, 1, 0], color: 0xffe066, type: 'folder' },
-                    { name: 'main.py', position: [0, 1, 0], color: 0x95e1d3, type: 'file' },
-                    { name: 'pyproject.toml', position: [3, 1, 0], color: 0xfce38a, type: 'file' }
+                    { 
+                        name: 'app/', 
+                        position: [-4, 4, 0], 
+                        color: 0x00ff88, 
+                        type: 'folder', 
+                        size: [2, 1.5, 2],
+                        description: 'CÓDIGO PRINCIPAL',
+                        function: 'Contém toda a lógica da aplicação Dash',
+                        importance: 'Essencial - Coração do projeto'
+                    },
+                    { 
+                        name: 'data/', 
+                        position: [0, 4, 0], 
+                        color: 0xff4757, 
+                        type: 'folder', 
+                        size: [2, 1.5, 2],
+                        description: 'DADOS DO PROJETO',
+                        function: 'Armazena datasets e arquivos de dados',
+                        importance: 'Crítico - Base para visualizações'
+                    },
+                    { 
+                        name: 'utils/', 
+                        position: [4, 4, 0], 
+                        color: 0x3742fa, 
+                        type: 'folder', 
+                        size: [2, 1.5, 2],
+                        description: 'UTILITÁRIOS',
+                        function: 'Funções auxiliares e helpers',
+                        importance: 'Suporte - Facilita desenvolvimento'
+                    },
+                    { 
+                        name: 'tests/', 
+                        position: [-4, 1.5, 0], 
+                        color: 0xffa502, 
+                        type: 'folder', 
+                        size: [2, 1.5, 2],
+                        description: 'TESTES',
+                        function: 'Testes automatizados da aplicação',
+                        importance: 'Qualidade - Garante funcionamento'
+                    },
+                    { 
+                        name: 'main.py', 
+                        position: [0, 1.5, 0], 
+                        color: 0x2ed573, 
+                        type: 'file', 
+                        size: [1.5, 2, 0.5],
+                        description: 'ARQUIVO PRINCIPAL',
+                        function: 'Ponto de entrada da aplicação',
+                        importance: 'Fundamental - Inicia toda aplicação'
+                    },
+                    { 
+                        name: 'pyproject.toml', 
+                        position: [4, 1.5, 0], 
+                        color: 0xff6348, 
+                        type: 'file', 
+                        size: [1.5, 2, 0.5],
+                        description: 'CONFIGURAÇÃO',
+                        function: 'Define dependências e configurações',
+                        importance: 'Configuração - Padrão moderno Python'
+                    }
                 ];
 
-                folderStructure.forEach(item => {
-                    const geometry = item.type === 'folder' 
-                        ? new THREE.BoxGeometry(1.5, 1, 1.5)
-                        : new THREE.BoxGeometry(1, 1.5, 0.3);
-                    
-                    const material = new THREE.MeshLambertMaterial({
-                        color: item.color,
-                        transparent: true,
-                        opacity: 0.8,
-                        emissive: item.color,
-                        emissiveIntensity: 0.2
-                    });
+                console.log('Criando estrutura 3D melhorada do projeto...');
 
-                    const mesh = new THREE.Mesh(geometry, material);
-                    mesh.position.set(...item.position);
-                    mesh.userData = { name: item.name, type: item.type };
-                    
-                    // Adicionar animação de hover
-                    mesh.scale.set(1, 1, 1);
-                    
-                    blueprintGroup.add(mesh);
+                folderStructure.forEach((item, index) => {
+                    try {
+                        // Criar geometria com tamanhos personalizados
+                        const geometry = new THREE.BoxGeometry(...item.size);
+                        
+                        // Material com efeitos holográficos melhorados
+                        const material = new THREE.MeshPhongMaterial({
+                            color: item.color,
+                            transparent: true,
+                            opacity: 0.7,
+                            emissive: item.color,
+                            emissiveIntensity: 0.15,
+                            shininess: 100,
+                            specular: 0x666666,
+                            wireframe: false
+                        });
 
-                    // Criar texto para o nome
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.width = 256;
-                    canvas.height = 64;
-                    context.fillStyle = '#00ff88';
-                    context.font = '24px Arial';
-                    context.textAlign = 'center';
-                    context.fillText(item.name, 128, 40);
+                        const mesh = new THREE.Mesh(geometry, material);
+                        mesh.position.set(...item.position);
+                        mesh.userData = { 
+                            name: item.name, 
+                            type: item.type, 
+                            originalColor: item.color,
+                            projectInfo: {
+                                name: item.name,
+                                description: item.description,
+                                function: item.function,
+                                importance: item.importance
+                            }
+                        };
+                        mesh.name = `blueprint-item-${index}`;
+                        mesh.castShadow = true;
+                        mesh.receiveShadow = true;
+                        
+                        // Adicionar borda wireframe
+                        const wireframe = new THREE.WireframeGeometry(geometry);
+                        const wireframeMaterial = new THREE.LineBasicMaterial({ 
+                            color: item.color, 
+                            transparent: true, 
+                            opacity: 0.8,
+                            linewidth: 2
+                        });
+                        const wireframeMesh = new THREE.LineSegments(wireframe, wireframeMaterial);
+                        mesh.add(wireframeMesh);
+                        
+                        blueprintGroup.add(mesh);
 
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-                    const sprite = new THREE.Sprite(spriteMaterial);
-                    sprite.position.set(item.position[0], item.position[1] - 1.5, item.position[2]);
-                    sprite.scale.set(2, 0.5, 1);
-                    
-                    blueprintGroup.add(sprite);
+                        // Criar label 3D melhorado
+                        this.createImprovedLabel(item, index, blueprintGroup);
+
+                        // Adicionar partículas ao redor dos objetos
+                        this.createParticleEffect(item, blueprintGroup);
+
+                        console.log(`Criado item melhorado: ${item.name} em posição`, item.position);
+                    } catch (error) {
+                        console.error(`Erro ao criar item ${item.name}:`, error);
+                    }
                 });
 
+                // Adicionar conexões entre elementos
+                this.createConnections(blueprintGroup);
+
                 AppState.scene.add(blueprintGroup);
+                console.log('Blueprint 3D melhorado adicionado à cena');
+
+                // Sistema de hover para informações detalhadas
+                this.setupHoverSystem();
+
+                // Animar entrada dos objetos
+                this.animateBlueprintEntrance(blueprintGroup);
 
                 // Configurar interação com raycasting
                 this.setupBlueprintInteraction();
+            },
+
+            createBlueprintBase(group) {
+                // Base holográfica circular
+                const baseGeometry = new THREE.CylinderGeometry(7, 7, 0.2, 32);
+                const baseMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.2,
+                    emissive: 0x00ff88,
+                    emissiveIntensity: 0.1
+                });
+                const base = new THREE.Mesh(baseGeometry, baseMaterial);
+                base.position.y = -0.2;
+                group.add(base);
+
+                // Anéis holográficos
+                for (let i = 1; i <= 3; i++) {
+                    const ringGeometry = new THREE.RingGeometry(2 * i, 2 * i + 0.1, 32);
+                    const ringMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x00ff88,
+                        transparent: true,
+                        opacity: 0.3 / i,
+                        side: THREE.DoubleSide
+                    });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    ring.rotation.x = -Math.PI / 2;
+                    ring.position.y = 0.1;
+                    group.add(ring);
+                }
+            },
+
+            setupHoverSystem() {
+                // Criar painel de informações
+                const infoPanel = document.createElement('div');
+                infoPanel.id = 'hover-info-panel';
+                infoPanel.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, rgba(0, 255, 136, 0.95), rgba(0, 200, 255, 0.95));
+                    color: #000;
+                    padding: 20px;
+                    border-radius: 15px;
+                    border: 3px solid #00ff88;
+                    font-family: Arial, sans-serif;
+                    font-size: 16px;
+                    max-width: 450px;
+                    z-index: 1000;
+                    display: none;
+                    box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
+                    backdrop-filter: blur(10px);
+                `;
+                document.body.appendChild(infoPanel);
+
+                // Sistema de raycasting para hover
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+                
+                const onMouseMove = (event) => {
+                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                    
+                    raycaster.setFromCamera(mouse, this.camera);
+                    const intersects = raycaster.intersectObjects(AppState.scene.children, true);
+                    
+                    let foundInfo = false;
+                    for (let intersect of intersects) {
+                        const object = intersect.object;
+                        if (object.userData && object.userData.projectInfo) {
+                            const info = object.userData.projectInfo;
+                            infoPanel.innerHTML = `
+                                <div style="border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 10px;">
+                                    <h3 style="margin: 0; font-size: 24px; color: #000;">${info.name}</h3>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <strong style="color: #004d2a;">📂 Tipo:</strong><br>
+                                    <span style="font-size: 18px;">${info.description}</span>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <strong style="color: #004d2a;">⚙️ Função:</strong><br>
+                                    <span style="font-size: 16px;">${info.function}</span>
+                                </div>
+                                <div>
+                                    <strong style="color: #004d2a;">⭐ Importância:</strong><br>
+                                    <span style="font-size: 16px; font-weight: bold;">${info.importance}</span>
+                                </div>
+                            `;
+                            infoPanel.style.display = 'block';
+                            foundInfo = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!foundInfo) {
+                        infoPanel.style.display = 'none';
+                    }
+                };
+                
+                window.addEventListener('mousemove', onMouseMove);
+                
+                // Instrução para o usuário
+                const instructionPanel = document.createElement('div');
+                instructionPanel.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 20px;
+                    background: rgba(0, 255, 136, 0.9);
+                    color: #000;
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid #00ff88;
+                    font-family: Arial, sans-serif;
+                    font-size: 16px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+                `;
+                instructionPanel.innerHTML = '🔍 Passe o mouse sobre os blocos para ver detalhes!';
+                document.body.appendChild(instructionPanel);
+                
+                // Remover instrução após alguns segundos
+                setTimeout(() => {
+                    instructionPanel.style.opacity = '0';
+                    instructionPanel.style.transition = 'opacity 2s';
+                    setTimeout(() => instructionPanel.remove(), 2000);
+                }, 5000);
+            },
+
+            createImprovedLabel(item, index, group) {
+                // Canvas para texto 3D melhorado
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 640;
+                canvas.height = 160;
+                
+                // Gradiente de fundo
+                const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, 'rgba(0, 255, 136, 0.95)');
+                gradient.addColorStop(1, 'rgba(0, 200, 255, 0.95)');
+                
+                // Fundo com gradiente
+                context.fillStyle = gradient;
+                context.fillRect(10, 10, canvas.width - 20, canvas.height - 20);
+                
+                // Borda
+                context.strokeStyle = '#00ff88';
+                context.lineWidth = 6;
+                context.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+                
+                // Texto principal (nome do arquivo/pasta)
+                context.fillStyle = '#000';
+                context.font = 'bold 42px Arial';
+                context.textAlign = 'center';
+                context.fillText(item.name, canvas.width / 2, 60);
+                
+                // Subtítulo com descrição
+                context.font = 'bold 28px Arial';
+                let description = '';
+                if (item.type === 'folder') {
+                    if (item.name === 'app') description = 'CÓDIGO PRINCIPAL';
+                    else if (item.name === 'data') description = 'DADOS DO PROJETO';
+                    else if (item.name === 'utils') description = 'UTILITÁRIOS';
+                    else if (item.name === 'tests') description = 'TESTES';
+                    else if (item.name === 'static') description = 'ARQUIVOS ESTÁTICOS';
+                    else description = 'PASTA';
+                } else {
+                    if (item.name === 'main.py') description = 'ARQUIVO PRINCIPAL';
+                    else if (item.name === 'models.py') description = 'MODELOS DE DADOS';
+                    else if (item.name === 'views.py') description = 'VISUALIZAÇÕES';
+                    else if (item.name === 'routers.py') description = 'ROTAS';
+                    else if (item.name === 'pyproject.toml') description = 'CONFIGURAÇÃO';
+                    else if (item.name === '__init__.py') description = 'MÓDULO PYTHON';
+                    else description = 'ARQUIVO';
+                }
+                context.fillText(description, canvas.width / 2, 110);
+                
+                // Sombra para melhor visibilidade
+                context.shadowColor = '#000';
+                context.shadowBlur = 8;
+                context.shadowOffsetX = 2;
+                context.shadowOffsetY = 2;
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true,
+                    alphaTest: 0.1
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                
+                // Posicionamento melhorado - abaixo dos objetos com mais distância
+                const labelY = item.type === 'folder' ? item.position[1] - 4.5 : item.position[1] - 5;
+                sprite.position.set(item.position[0], labelY, item.position[2]);
+                sprite.scale.set(4.5, 1.125, 1); // Maior para melhor visibilidade
+                sprite.name = `blueprint-label-${index}`;
+                
+                // Sempre virado para a câmera
+                sprite.lookAt = function() {
+                    this.lookAt(AppState.scene.camera.position);
+                };
+                
+                group.add(sprite);
+            },
+
+            createParticleEffect(item, group) {
+                // Partículas flutuantes ao redor dos objetos
+                const particleCount = 20;
+                const particles = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = item.position[0] + (Math.random() - 0.5) * 4;
+                    positions[i * 3 + 1] = item.position[1] + (Math.random() - 0.5) * 4;
+                    positions[i * 3 + 2] = item.position[2] + (Math.random() - 0.5) * 4;
+                }
+                
+                particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                
+                const particleMaterial = new THREE.PointsMaterial({
+                    color: item.color,
+                    size: 0.1,
+                    transparent: true,
+                    opacity: 0.6,
+                    blending: THREE.AdditiveBlending
+                });
+                
+                const particleSystem = new THREE.Points(particles, particleMaterial);
+                particleSystem.name = `particles-${item.name}`;
+                group.add(particleSystem);
+            },
+
+            createConnections(group) {
+                // Conexões holográficas entre elementos relacionados
+                const connections = [
+                    { from: [-4, 4, 0], to: [0, 1.5, 0] }, // app -> main.py
+                    { from: [0, 4, 0], to: [0, 1.5, 0] },  // data -> main.py
+                    { from: [4, 4, 0], to: [0, 1.5, 0] },  // utils -> main.py
+                    { from: [0, 1.5, 0], to: [4, 1.5, 0] } // main.py -> pyproject.toml
+                ];
+                
+                connections.forEach((conn, index) => {
+                    const points = [
+                        new THREE.Vector3(...conn.from),
+                        new THREE.Vector3(...conn.to)
+                    ];
+                    
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const material = new THREE.LineBasicMaterial({
+                        color: 0x00ccff,
+                        transparent: true,
+                        opacity: 0.4,
+                        linewidth: 2
+                    });
+                    
+                    const line = new THREE.Line(geometry, material);
+                    line.name = `connection-${index}`;
+                    group.add(line);
+                });
+            },
+
+            animateBlueprintEntrance(blueprintGroup) {
+                // Animar entrada dos objetos com efeitos melhorados
+                blueprintGroup.children.forEach((child, index) => {
+                    if (child.name && child.name.startsWith('blueprint-item-')) {
+                        // Posição inicial (caindo do céu)
+                        const originalY = child.position.y;
+                        child.position.y = originalY + 10;
+                        child.scale.set(0, 0, 0);
+                        child.material.opacity = 0;
+                        
+                        // Animar com delay e efeitos
+                        setTimeout(() => {
+                            const startTime = Date.now();
+                            const duration = 1200;
+                            
+                            const animate = () => {
+                                const elapsed = Date.now() - startTime;
+                                const progress = Math.min(elapsed / duration, 1);
+                                
+                                // Easing functions diferentes para Y e escala
+                                const bounceProgress = this.easeOutBounce(progress);
+                                const scaleProgress = this.easeOutElastic(progress);
+                                
+                                // Animação Y (queda com bounce)
+                                child.position.y = (originalY + 10) + (originalY - (originalY + 10)) * bounceProgress;
+                                
+                                // Animação escala (elastic)
+                                child.scale.set(scaleProgress, scaleProgress, scaleProgress);
+                                
+                                // Fade in
+                                child.material.opacity = progress * 0.7;
+                                
+                                // Rotação durante entrada
+                                child.rotation.y = (1 - progress) * Math.PI * 2;
+                                
+                                if (progress < 1) {
+                                    requestAnimationFrame(animate);
+                                } else {
+                                    // Adicionar rotação idle
+                                    this.addIdleAnimation(child);
+                                }
+                            };
+                            
+                            animate();
+                        }, index * 300);
+                    }
+                    
+                    // Animar partículas
+                    if (child.name && child.name.startsWith('particles-')) {
+                        this.animateParticles(child);
+                    }
+                });
+            },
+
+            easeOutBounce(t) {
+                if (t < 1/2.75) {
+                    return 7.5625 * t * t;
+                } else if (t < 2/2.75) {
+                    return 7.5625 * (t -= 1.5/2.75) * t + 0.75;
+                } else if (t < 2.5/2.75) {
+                    return 7.5625 * (t -= 2.25/2.75) * t + 0.9375;
+                } else {
+                    return 7.5625 * (t -= 2.625/2.75) * t + 0.984375;
+                }
+            },
+
+            easeOutElastic(t) {
+                if (t === 0) return 0;
+                if (t === 1) return 1;
+                const p = 0.3;
+                const s = p / 4;
+                return Math.pow(2, -10 * t) * Math.sin((t - s) * (2 * Math.PI) / p) + 1;
+            },
+
+            addIdleAnimation(object) {
+                // Animação de idle mais suave (flutuação menor)
+                const startY = object.position.y;
+                const startTime = Date.now();
+                const floatAmount = 0.1; // Reduzido de 0.2 para 0.1
+                const speed = 0.001; // Reduzido de 0.002 para 0.001
+                
+                const animate = () => {
+                    const time = (Date.now() - startTime) * speed;
+                    object.position.y = startY + Math.sin(time) * floatAmount;
+                    object.rotation.y += 0.002; // Reduzido de 0.005 para 0.002
+                    
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+            },
+
+            animateParticles(particleSystem) {
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const time = (Date.now() - startTime) * 0.001;
+                    const positions = particleSystem.geometry.attributes.position.array;
+                    
+                    for (let i = 0; i < positions.length; i += 3) {
+                        positions[i + 1] += Math.sin(time + i) * 0.01; // Y movement
+                        positions[i] += Math.cos(time + i) * 0.005;     // X movement
+                    }
+                    
+                    particleSystem.geometry.attributes.position.needsUpdate = true;
+                    particleSystem.rotation.y += 0.01;
+                    
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
             },
 
             setupBlueprintInteraction() {
                 const raycaster = new THREE.Raycaster();
                 const mouse = new THREE.Vector2();
 
-                const onMouseClick = (event) => {
-                    // Calcular posição do mouse em coordenadas normalizadas
-                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                // Remover listener anterior se existir
+                if (this.blueprintClickHandler) {
+                    AppState.renderer.domElement.removeEventListener('click', this.blueprintClickHandler);
+                }
+                if (this.blueprintMoveHandler) {
+                    AppState.renderer.domElement.removeEventListener('mousemove', this.blueprintMoveHandler);
+                }
+
+                // Click handler
+                this.blueprintClickHandler = (event) => {
+                    const rect = AppState.renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
                     raycaster.setFromCamera(mouse, AppState.camera);
                     
                     const blueprint = AppState.scene.getObjectByName('project-blueprint');
                     if (!blueprint) return;
 
-                    const intersects = raycaster.intersectObjects(blueprint.children.filter(child => child.userData.name));
+                    const meshes = blueprint.children.filter(child => 
+                        child.name && child.name.startsWith('blueprint-item-')
+                    );
+                    
+                    const intersects = raycaster.intersectObjects(meshes);
 
                     if (intersects.length > 0) {
                         const clickedObject = intersects[0].object;
                         this.showItemDescription(clickedObject.userData);
+                        this.animateClickEffect(clickedObject);
                     }
                 };
 
-                AppState.renderer.domElement.addEventListener('click', onMouseClick);
+                // Hover handler
+                this.blueprintMoveHandler = (event) => {
+                    const rect = AppState.renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    raycaster.setFromCamera(mouse, AppState.camera);
+                    
+                    const blueprint = AppState.scene.getObjectByName('project-blueprint');
+                    if (!blueprint) return;
+
+                    const meshes = blueprint.children.filter(child => 
+                        child.name && child.name.startsWith('blueprint-item-')
+                    );
+                    
+                    const intersects = raycaster.intersectObjects(meshes);
+
+                    // Reset all objects
+                    meshes.forEach(mesh => {
+                        mesh.material.emissiveIntensity = 0.15;
+                        mesh.scale.set(1, 1, 1);
+                        AppState.renderer.domElement.style.cursor = 'default';
+                    });
+
+                    // Highlight hovered object
+                    if (intersects.length > 0) {
+                        const hoveredObject = intersects[0].object;
+                        hoveredObject.material.emissiveIntensity = 0.4;
+                        hoveredObject.scale.set(1.1, 1.1, 1.1);
+                        AppState.renderer.domElement.style.cursor = 'pointer';
+                    }
+                };
+
+                AppState.renderer.domElement.addEventListener('click', this.blueprintClickHandler);
+                AppState.renderer.domElement.addEventListener('mousemove', this.blueprintMoveHandler);
+                console.log('Interação blueprint melhorada configurada');
+            },
+
+            animateClickEffect(object) {
+                const originalScale = { x: object.scale.x, y: object.scale.y, z: object.scale.z };
+                const startTime = Date.now();
+                const duration = 300;
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / duration;
+                    
+                    if (progress < 0.5) {
+                        // Expandir
+                        const scale = 1 + (progress * 0.4);
+                        object.scale.set(scale, scale, scale);
+                    } else {
+                        // Contrair
+                        const scale = 1.2 - ((progress - 0.5) * 0.4);
+                        object.scale.set(scale, scale, scale);
+                    }
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        object.scale.set(originalScale.x, originalScale.y, originalScale.z);
+                    }
+                };
+                
+                animate();
             },
 
             showItemDescription(item) {
+                if (!item || !item.name) {
+                    console.log('Item inválido para mostrar descrição');
+                    return;
+                }
+
                 const descriptions = {
-                    'app/': 'Pasta principal do código da aplicação. Contém modelos, rotas, views e arquivos estáticos.',
-                    'data/': 'Pasta para datasets e arquivos de dados. Aqui ficará nosso Heart Disease Dataset.',
-                    'utils/': 'Funções utilitárias e helpers que podem ser reutilizados em diferentes partes do projeto.',
-                    'tests/': 'Testes automatizados para garantir a qualidade do código.',
-                    'main.py': 'Ponto de entrada da aplicação. Arquivo principal que inicia o servidor Dash.',
-                    'pyproject.toml': 'Arquivo de configuração do projeto com dependências e metadados.'
+                    'app/': '📁 Pasta principal do código da aplicação. Contém modelos, rotas, views e arquivos estáticos.',
+                    'data/': '📊 Pasta para datasets e arquivos de dados. Aqui ficará nosso Heart Disease Dataset.',
+                    'utils/': '🛠️ Funções utilitárias e helpers que podem ser reutilizados em diferentes partes do projeto.',
+                    'tests/': '🧪 Testes automatizados para garantir a qualidade do código.',
+                    'main.py': '🚀 Ponto de entrada da aplicação. Arquivo principal que inicia o servidor Dash.',
+                    'pyproject.toml': '⚙️ Arquivo de configuração do projeto com dependências e metadados.'
                 };
 
-                const description = descriptions[item.name] || 'Componente do projeto.';
+                const description = descriptions[item.name] || '📄 Componente do projeto.';
+                
+                // Remover painel anterior se existir
+                const existingPanel = document.getElementById('blueprint-description');
+                if (existingPanel) {
+                    existingPanel.remove();
+                }
                 
                 // Mostrar descrição em um mini-painel
                 const miniPanel = document.createElement('div');
+                miniPanel.id = 'blueprint-description';
                 miniPanel.style.cssText = `
                     position: fixed;
                     top: 20px;
                     left: 20px;
-                    background: rgba(0, 255, 136, 0.9);
+                    background: rgba(0, 255, 136, 0.95);
                     color: #000;
                     padding: 1rem;
                     border-radius: 8px;
-                    max-width: 300px;
+                    max-width: 350px;
                     font-size: 0.9rem;
                     z-index: 200;
                     animation: fadeIn 0.3s ease;
+                    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+                    border: 2px solid #00ff88;
+                    font-family: 'Segoe UI', sans-serif;
                 `;
-                miniPanel.innerHTML = `<strong>${item.name}</strong><br>${description}`;
+                miniPanel.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 0.5rem; font-size: 1rem;">
+                        ${item.name}
+                    </div>
+                    <div>${description}</div>
+                    <div style="text-align: right; margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
+                        Clique em outros elementos para explorar
+                    </div>
+                `;
                 
                 document.body.appendChild(miniPanel);
                 
+                // Auto-remover após 4 segundos
                 setTimeout(() => {
                     if (miniPanel.parentNode) {
-                        miniPanel.parentNode.removeChild(miniPanel);
+                        miniPanel.style.opacity = '0';
+                        miniPanel.style.transition = 'opacity 0.3s ease';
+                        setTimeout(() => {
+                            if (miniPanel.parentNode) {
+                                miniPanel.parentNode.removeChild(miniPanel);
+                            }
+                        }, 300);
                     }
-                }, 3000);
+                }, 4000);
+
+                console.log(`Mostrando descrição para: ${item.name}`);
             },
 
             showUpcomingModules() {

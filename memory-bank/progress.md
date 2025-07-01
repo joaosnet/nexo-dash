@@ -58,8 +58,8 @@
 #### Funcionalidades Adicionadas:
 - **Módulo 0 Detalhado**: Calibração completa com 6 passos
   - Apresentação da Dra. Ana Turing e missão
-  - Instalação do VS Code com extensões
-  - Instalação do uv (gerenciador de pacotes)
+  - Instalação do VS Code com extensões (Python, Ruff, Error Lens, Data Wrangler)
+  - Instalação do uv (gerenciador de pacotes) - comandos específicos para Windows PowerShell
   - Criação do projeto com `uv init`
   - Instalação de dependências com `uv add`
   - Confirmação de calibração completa
