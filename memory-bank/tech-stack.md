@@ -27,7 +27,7 @@ Tech Stack: Nexo Dash
 
         dash-mantine-components
 
-    Chart Editor: react-chart-editor
+    Chart Editor: dash-chart-editor v0.0.1a5 (substitui react-chart-editor)
 
 3. Application Technologies
 
@@ -43,7 +43,7 @@ Tech Stack: Nexo Dash
 
     Automatic Language Detection: The application will detect the user's browser language (navigator.language) as a starting point for translation.
 
-    Translation Solution: The AutoTranslate.js library will be used. This tool will dynamically translate the page content using an AI model (SeamlessM4T).
+    Translation Solution: The AutoTranslate.js v2.0.1 library will be used. This tool will dynamically translate the page content using an AI model (SeamlessM4T).
 
     Language Selector: A control in the interface will allow the user to choose a different language at any time, triggering AutoTranslate.js to re-translate the content.
 
@@ -62,3 +62,62 @@ Tech Stack: Nexo Dash
     Visual Studio Code Documentation
 
     React Chart Editor Repository
+
+## Especificações Técnicas Adicionais
+
+### Editor de Código
+- **Recomendado**: Visual Studio Code
+- **Configuração**: Ensinada no Módulo 0 do jogo
+- **Integração**: Monaco Editor ou Ace Editor para edição in-browser
+
+### Dataset Principal
+- **Nome**: Heart Disease Dataset
+- **Fonte**: Kaggle (johnsmith88)
+- **URL de Download Direto**: https://www.kaggle.com/api/v1/datasets/download/johnsmith88/heart-disease-dataset
+- **Formato**: CSV
+- **Localização no Projeto**: pasta `data/`
+
+### React e Componentes UI
+- **Framework React**: Instanciado automaticamente pelo dash-mantine-components
+- **Componentes**: dash-mantine-components (interface moderna)
+- **Chart Editor**: dash-chart-editor v0.0.1a5 (substitui react-chart-editor)
+
+### Assets de Áudio
+- **Status**: A serem encontrados ou criados
+- **Tipos Necessários**: 
+  - Trilha sonora ambiente
+  - Efeitos sonoros para interações
+  - Sons para animações 3D
+  - Feedback auditivo para conclusão de módulos
+- **Formatos**: MP3/OGG para compatibilidade cross-browser
+- **API**: Web Audio API para controle
+
+### Responsividade
+- **Breakpoints**: Padrão da indústria
+  - Mobile: 320px - 767px
+  - Tablet: 768px - 1023px  
+  - Desktop: 1024px - 1439px
+  - Large Desktop: 1440px+
+
+### Deploy e Distribuição
+- **Deploy Inicial**: GitHub Pages
+- **Configuração**: GitHub Actions para deploy automático
+- **Arquitetura**: Arquivo único (index.html) para simplicidade
+- **CDN**: Bibliotecas externas via CDN para reduzir tamanho
+
+### Comandos de Desenvolvimento
+```bash
+# Servidor local para desenvolvimento
+python -m http.server 8000
+
+# Comandos ensinados no jogo (Módulo 0)
+uv init                                                    # Inicializar projeto Python
+uv add dash dash-mantine-components dash-chart-editor pandas  # Adicionar dependências principais
+uv run python main.py                                     # Executar aplicação Dash
+```
+
+### Versões Específicas
+- **AutoTranslate.js**: v2.0.1
+- **dash-chart-editor**: v0.0.1a5
+- **Python**: Executado via Pyodide (WebAssembly)
+- **Gerenciador de Pacotes**: uv (Astral) - foco principal do ensino

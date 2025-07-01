@@ -1,4 +1,11 @@
-Implementation Plan: Nexo Dash
+Implementation Plan: Nexo Dash        
+Include the CDN links for:
+
+            three.js (for the 3D scene).
+
+            Pyodide (to run Python).
+
+            AutoTranslate.js v2.0.1 (for translation). Dash
 
 This document details the step-by-step implementation plan for the "Nexo Dash" project, based on the GDD and the defined technology stack.
 
@@ -108,7 +115,7 @@ Objective: Implement the core of the learning experience, where the user's code 
 
     Implement the Chart Editor:
 
-        Integrate the react-chart-editor (or a non-React version that manipulates the Plotly specification) into a modal or panel.
+        Integrate the dash-chart-editor v0.0.1a5 (which replaces react-chart-editor) into a modal or panel.
 
         When the user edits a chart, the editor will generate a new Plotly JSON specification. This specification will be used to update both the 2D chart in the preview and the appearance of the corresponding 3D "crystal".
 
@@ -118,13 +125,19 @@ Objective: Add the final layers of functionality, sound, and optimization.
 
     Implement Translation:
 
-        Configure AutoTranslate.js to observe the text elements of the interface.
+        Configure AutoTranslate.js v2.0.1 to observe the text elements of the interface.
 
         Create the language selector (a simple dropdown) and link its change to the library's translation function.
 
     Add Audio:
 
         Use the Web Audio API to load and play sound effects and background music.
+
+        Find or create audio assets for:
+          - Ambient laboratory soundtrack
+          - Interaction sound effects (clicks, module completion)  
+          - 3D animation audio feedback
+          - UI feedback sounds
 
         Link sound effects to interaction events (clicks, module completion, 3D animations).
 
@@ -142,7 +155,13 @@ Objective: Ensure that the application works correctly in different environments
 
         Test the application in major browsers (Chrome, Firefox, Safari, Edge).
 
-        Test on different devices (desktop, laptop, tablet, smartphone) to ensure that the responsive layout is working.
+        Test on different devices (desktop, laptop, tablet, smartphone) using industry-standard breakpoints:
+          - Mobile: 320px - 767px
+          - Tablet: 768px - 1023px  
+          - Desktop: 1024px - 1439px
+          - Large Desktop: 1440px+
+
+        Ensure that the responsive layout is working correctly across all breakpoints.
 
     Final Review:
 
@@ -150,4 +169,40 @@ Objective: Ensure that the application works correctly in different environments
 
     Distribution:
 
-        Since the project is a single index.html file, distribution is simple: the file can be hosted on any static web server (such as GitHub Pages) or sent directly to users.
+        Since the project is a single index.html file, distribution is simple: the file can be hosted on any static web server.
+
+        Initial deployment will be on GitHub Pages with GitHub Actions for automatic deployment.
+
+        The application can also be sent directly to users as a single file.
+
+## Additional Implementation Details
+
+### Dataset Integration
+- **Heart Disease Dataset**: Download URL: https://www.kaggle.com/api/v1/datasets/download/johnsmith88/heart-disease-dataset
+- **Integration Point**: Module 1 (Project Blueprint) - students will be instructed to download and place in project's `data/` folder
+- **Usage**: Throughout modules for building dashboard visualizations
+
+### VS Code Configuration (Module 0)
+- **Installation Guide**: Provide VS Code download links and installation instructions
+- **Extensions**: Recommend Python extension pack
+- **Terminal Setup**: Configure integrated terminal for uv commands
+- **Project Setup**: Guide through opening project folder and terminal
+
+### Package Manager Focus (uv)
+- **Installation**: Detailed uv installation and PATH configuration
+- **Core Commands**: 
+  - `uv init` - Initialize project with pyproject.toml
+  - `uv add dash dash-mantine-components dash-chart-editor pandas` - Add dependencies
+  - `uv run python main.py` - Run application
+- **Benefits**: Explain fast dependency resolution and virtual environment management
+
+### React Integration
+- **Automatic Instantiation**: React will be automatically available through dash-mantine-components
+- **No Manual Setup**: Students don't need to configure React separately
+- **Component Usage**: Focus on dash-mantine-components syntax rather than raw React
+
+### Responsive Design Implementation
+- **CSS Grid/Flexbox**: Use modern CSS layout for 3D overlays
+- **Media Queries**: Implement breakpoints for different screen sizes
+- **Touch Optimization**: Ensure 3D controls work on touch devices
+- **Performance**: Optimize three.js rendering for mobile devices

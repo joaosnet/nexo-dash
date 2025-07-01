@@ -89,7 +89,7 @@ The experience is continuous within the three.js environment:
     ├── .gitignore        # Files and folders ignored by Git
     └── README.md         # Initial project documentation
 
-    Next, she presents the central mission and directs the student to download the "Heart Disease Dataset" from Kaggle, instructing them to save it in the correct project folder.
+    Next, she presents the central mission and directs the student to download the "Heart Disease Dataset" from Kaggle using the direct download URL: https://www.kaggle.com/api/v1/datasets/download/johnsmith88/heart-disease-dataset, instructing them to save it in the correct project folder (`data/` directory).
 
     3D Interaction: The 3D diagram lights up, and a new object representing the "data container" is added to the scene, ready to be used.
 
@@ -107,7 +107,7 @@ The focus shifts to building the health dashboard, with the 3D architecture bein
 
     Module 6 (Enhancing with Mantine): The student replaces the basic components with dash-mantine-components for a more professional look. The 3D pieces receive a visual "upgrade," becoming more polished.
 
-    Module 7 (Refining the Visualization): The student uses the react-chart-editor to customize the existing graphs, adjusting colors and axes.
+    Module 7 (Refining the Visualization): The student uses the dash-chart-editor v0.0.1a5 to customize the existing graphs, adjusting colors and axes.
 
     Completion Project: The final mission is not to start a new project but to finalize and expand the existing dashboard. Dr. Turing will ask for the addition of a new analysis page or a set of advanced KPIs, consolidating all the learning into a single and impressive final result.
 
