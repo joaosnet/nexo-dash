@@ -379,6 +379,7 @@
     <!-- Three.js para renderização 3D -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     
     <!-- Pyodide para execução de Python no navegador -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
@@ -471,6 +472,17 @@
                         directionalLight.shadow.mapSize.height = 2048;
                         AppState.scene.add(directionalLight);
 
+                        // Carregar modelo 3D da Dra. Turing PRIMEIRO
+                        this.loadDrTuring();
+                        
+                        // Se o modelo falhar, criar placeholder imediatamente
+                        setTimeout(() => {
+                            if (!AppState.drTuring) {
+                                console.log('Modelo da Dra. Turing não carregou, criando placeholder...');
+                                this.createDrTuringPlaceholder();
+                            }
+                        }, 3000); // 3 segundos de timeout
+
                         // Configurar controles de órbita
                         AppState.controls = new THREE.OrbitControls(AppState.camera, AppState.renderer.domElement);
                         AppState.controls.enableDamping = true;
@@ -479,7 +491,7 @@
 
                         // Criar geometria inicial (plataforma do laboratório)
                         this.createLaboratoryPlatform();
-
+                        
                         // Configurar responsividade
                         window.addEventListener('resize', this.onWindowResize.bind(this));
 
@@ -492,6 +504,571 @@
                         resolve(); // Continuar mesmo com erro
                     }
                 });
+            },
+
+            loadDrTuring() {
+                LoadingSystem.updateProgress(3, 'Carregando Dra. Ana Turing...');
+                
+                // Inicializar GLTFLoader
+                const loader = new THREE.GLTFLoader();
+                
+                // Carregar modelo 3D da Dra. Turing
+                loader.load(
+                    './assets/Pbr/base_basic_pbr.glb',
+                    (gltf) => {
+                        console.log('Modelo da Dra. Turing carregado com sucesso!');
+                        
+                        const drTuring = gltf.scene;
+                        
+                        // Posicionar próximo ao laboratório - lado esquerdo em posição mais central
+                        drTuring.position.set(-8, 0, 5);
+                        drTuring.scale.set(2.5, 2.5, 2.5); // Tamanho maior para ser mais visível
+                        drTuring.rotation.y = Math.PI / 4; // Girar para olhar em direção ao centro
+                        
+                        // Configurar materiais com cores realistas para um personagem humano
+                        drTuring.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                
+                                if (child.material) {
+                                    // Aplicar cores realistas baseadas no nome do material ou posição
+                                    if (child.name.toLowerCase().includes('skin') || 
+                                        child.material.name?.toLowerCase().includes('skin') ||
+                                        child.name.toLowerCase().includes('head') ||
+                                        child.name.toLowerCase().includes('face')) {
+                                        // Cor de pele realista
+                                        child.material.color = new THREE.Color(0xffdbac);
+                                        child.material.transparent = false;
+                                        child.material.opacity = 1.0;
+                                        child.material.emissive = new THREE.Color(0x000000);
+                                        child.material.emissiveIntensity = 0;
+                                    } else if (child.name.toLowerCase().includes('hair') ||
+                                               child.material.name?.toLowerCase().includes('hair')) {
+                                        // Cabelo castanho escuro
+                                        child.material.color = new THREE.Color(0x2d1b0e);
+                                        child.material.transparent = false;
+                                        child.material.opacity = 1.0;
+                                        child.material.emissive = new THREE.Color(0x000000);
+                                        child.material.emissiveIntensity = 0;
+                                    } else if (child.name.toLowerCase().includes('cloth') ||
+                                               child.name.toLowerCase().includes('shirt') ||
+                                               child.name.toLowerCase().includes('dress') ||
+                                               child.material.name?.toLowerCase().includes('cloth')) {
+                                        // Jaleco branco de laboratório
+                                        child.material.color = new THREE.Color(0xf8f8ff);
+                                        child.material.transparent = false;
+                                        child.material.opacity = 1.0;
+                                        child.material.emissive = new THREE.Color(0x222244);
+                                        child.material.emissiveIntensity = 0.1; // Leve brilho futurista
+                                    } else if (child.name.toLowerCase().includes('eye') ||
+                                               child.material.name?.toLowerCase().includes('eye')) {
+                                        // Olhos realistas
+                                        child.material.color = new THREE.Color(0x4a90e2);
+                                        child.material.transparent = false;
+                                        child.material.opacity = 1.0;
+                                        child.material.emissive = new THREE.Color(0x001122);
+                                        child.material.emissiveIntensity = 0.2;
+                                    } else {
+                                        // Material padrão com leve toque futurista
+                                        child.material.color = new THREE.Color(0xeeeeee);
+                                        child.material.transparent = false;
+                                        child.material.opacity = 1.0;
+                                        child.material.emissive = new THREE.Color(0x002244);
+                                        child.material.emissiveIntensity = 0.05;
+                                    }
+                                    
+                                    // Propriedades gerais para aparência mais realista
+                                    child.material.metalness = 0.1;
+                                    child.material.roughness = 0.7;
+                                }
+                            }
+                        });
+                                  // Adicionar à cena
+                AppState.scene.add(drTuring);
+                AppState.drTuring = drTuring;
+                
+                // Sistema de animações da Dra. Turing
+                this.setupDrTuringAnimations(drTuring);
+                
+                // Sistema de fala 3D
+                this.setupDrTuringSpeech3D(drTuring);
+                
+                // Adicionar iluminação especial para a Dra. Turing
+                this.addDrTuringLighting(drTuring);
+                
+                // Mostrar mensagem inicial com animação de entrada
+                setTimeout(() => {
+                    this.drTuringSpeak3D(`Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?`);
+                }, 2000);
+                        
+                        LoadingSystem.updateProgress(4, 'Dra. Turing online!');
+                    },
+                    (progress) => {
+                        console.log('Progresso do carregamento:', (progress.loaded / progress.total * 100) + '%');
+                    },
+                    (error) => {
+                        console.error('Erro ao carregar modelo da Dra. Turing:', error);
+                        // Criar um placeholder visual mais realista se o modelo falhar
+                        this.createDrTuringPlaceholder();
+                    }
+                );
+            },
+
+            setupDrTuringAnimations(model) {
+                // Sistema de animações da Dra. Turing
+                AppState.drTuringAnimations = {
+                    idleAnimation: null,
+                    speakingAnimation: null,
+                    walkAnimation: null,
+                    isSpeaking: false,
+                    isWalking: false
+                };
+
+                // Animação Idle (quando não está falando)
+                const startIdleAnimation = () => {
+                    let time = 0;
+                    const originalY = model.position.y;
+                    const originalRotY = model.rotation.y;
+
+                    const animate = () => {
+                        if (!AppState.drTuringAnimations.isSpeaking && !AppState.drTuringAnimations.isWalking) {
+                            time += 0.005;
+                            
+                            // Respiração sutil
+                            model.position.y = originalY + Math.sin(time * 2) * 0.05;
+                            
+                            // Olhar para diferentes direções ocasionalmente
+                            const lookDirection = Math.sin(time * 0.3) * 0.2;
+                            model.rotation.y = originalRotY + lookDirection;
+                            
+                            // Movimento sutil de balanço
+                            model.rotation.z = Math.sin(time * 1.5) * 0.02;
+                        }
+                        
+                        AppState.drTuringAnimations.idleAnimation = requestAnimationFrame(animate);
+                    };
+                    
+                    animate();
+                };
+
+                // Animação de fala (quando está falando)
+                const startSpeakingAnimation = () => {
+                    let time = 0;
+                    const originalY = model.position.y;
+
+                    const animate = () => {
+                        if (AppState.drTuringAnimations.isSpeaking) {
+                            time += 0.02;
+                            
+                            // Movimento mais expressivo quando falando
+                            model.position.y = originalY + Math.sin(time * 3) * 0.1;
+                            
+                            // Gestos com as mãos (rotação sutil)
+                            model.rotation.z = Math.sin(time * 2) * 0.05;
+                            
+                            // Movimento da cabeça
+                            const headTurn = Math.sin(time * 1.2) * 0.1;
+                            model.rotation.y = Math.PI / 4 + headTurn;
+                            
+                            AppState.drTuringAnimations.speakingAnimation = requestAnimationFrame(animate);
+                        }
+                    };
+                    
+                    animate();
+                };
+
+                // Animação de caminhada (quando se move)
+                const walkToPosition = (targetX, targetZ, duration = 3000) => {
+                    AppState.drTuringAnimations.isWalking = true;
+                    
+                    const startPos = { x: model.position.x, z: model.position.z };
+                    const startTime = Date.now();
+                    
+                    const animate = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        // Interpolação suave
+                        const easedProgress = 1 - Math.pow(1 - progress, 3);
+                        
+                        // Atualizar posição
+                        model.position.x = startPos.x + (targetX - startPos.x) * easedProgress;
+                        model.position.z = startPos.z + (targetZ - startPos.z) * easedProgress;
+                        
+                        // Animar caminhada
+                        const walkCycle = elapsed * 0.01;
+                        model.position.y = Math.sin(walkCycle) * 0.15;
+                        model.rotation.z = Math.sin(walkCycle * 2) * 0.1;
+                        
+                        // Olhar na direção do movimento
+                        const direction = Math.atan2(targetZ - startPos.z, targetX - startPos.x);
+                        model.rotation.y = direction + Math.PI / 2;
+                        
+                        if (progress < 1) {
+                            AppState.drTuringAnimations.walkAnimation = requestAnimationFrame(animate);
+                        } else {
+                            AppState.drTuringAnimations.isWalking = false;
+                            model.rotation.y = Math.PI / 4; // Voltar para posição padrão
+                        }
+                    };
+                    
+                    animate();
+                };
+
+                // Métodos públicos
+                AppState.drTuringAnimations.startSpeaking = () => {
+                    AppState.drTuringAnimations.isSpeaking = true;
+                    startSpeakingAnimation();
+                };
+
+                AppState.drTuringAnimations.stopSpeaking = () => {
+                    AppState.drTuringAnimations.isSpeaking = false;
+                    if (AppState.drTuringAnimations.speakingAnimation) {
+                        cancelAnimationFrame(AppState.drTuringAnimations.speakingAnimation);
+                    }
+                };
+
+                AppState.drTuringAnimations.walkTo = walkToPosition;
+
+                // Iniciar animação idle
+                startIdleAnimation();
+            },
+
+            setupDrTuringSpeech3D(model) {
+                // Sistema de fala 3D com balões de texto na cena
+                AppState.drTuringSpeech3D = {
+                    currentBalloon: null,
+                    isPlaying: false
+                };
+
+                // Criar balão de fala 3D
+                const createSpeechBalloon = (text) => {
+                    // Remover balão anterior se existir
+                    if (AppState.drTuringSpeech3D.currentBalloon) {
+                        AppState.scene.remove(AppState.drTuringSpeech3D.currentBalloon);
+                    }
+
+                    // Criar canvas para o texto
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = 512;
+                    canvas.height = 256;
+
+                    // Configurar estilo do texto
+                    context.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Borda
+                    context.strokeStyle = '#00ff88';
+                    context.lineWidth = 4;
+                    context.strokeRect(0, 0, canvas.width, canvas.height);
+
+                    // Texto
+                    context.fillStyle = '#000';
+                    context.font = 'bold 18px Arial';
+                    context.textAlign = 'left';
+                    
+                    // Quebrar texto em linhas
+                    const words = text.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    const maxWidth = canvas.width - 40;
+                    
+                    words.forEach(word => {
+                        const testLine = currentLine + word + ' ';
+                        const metrics = context.measureText(testLine);
+                        if (metrics.width > maxWidth && currentLine !== '') {
+                            lines.push(currentLine);
+                            currentLine = word + ' ';
+                        } else {
+                            currentLine = testLine;
+                        }
+                    });
+                    lines.push(currentLine);
+
+                    // Desenhar linhas
+                    const lineHeight = 22;
+                    const startY = 30;
+                    lines.forEach((line, index) => {
+                        context.fillText(line, 20, startY + (index * lineHeight));
+                    });
+
+                    // Adicionar ícone da Dra. Turing
+                    context.font = '24px Arial';
+                    context.fillText('👩‍🔬', canvas.width - 50, 30);
+
+                    // Criar material do sprite
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const spriteMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        transparent: true
+                    });
+                    
+                    const sprite = new THREE.Sprite(spriteMaterial);
+                    sprite.position.set(
+                        model.position.x + 3,
+                        model.position.y + 4,
+                        model.position.z
+                    );
+                    sprite.scale.set(6, 3, 1);
+                    
+                    AppState.scene.add(sprite);
+                    AppState.drTuringSpeech3D.currentBalloon = sprite;
+
+                    return sprite;
+                };
+
+                // Método público para fazer a Dra. Turing falar
+                AppState.drTuringSpeech3D.speak = (text, duration = 5000) => {
+                    if (AppState.drTuringSpeech3D.isPlaying) return;
+                    
+                    AppState.drTuringSpeech3D.isPlaying = true;
+                    
+                    // Iniciar animação de fala
+                    AppState.drTuringAnimations.startSpeaking();
+                    
+                    // Intensificar iluminação quando fala
+                    if (AppState.drTuringLighting) {
+                        AppState.drTuringLighting.intensifyWhenSpeaking();
+                    }
+                    
+                    // Criar balão de fala
+                    const balloon = createSpeechBalloon(text);
+                    
+                    // Animação de entrada do balão
+                    balloon.scale.set(0, 0, 0);
+                    const startTime = Date.now();
+                    const animateBalloon = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / 500, 1);
+                        
+                        balloon.scale.set(
+                            6 * progress,
+                            3 * progress,
+                            1
+                        );
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateBalloon);
+                        }
+                    };
+                    animateBalloon();
+                    
+                    // Fazer balão seguir a Dra. Turing
+                    const followDrTuring = () => {
+                        if (balloon && balloon.parent) {
+                            balloon.position.set(
+                                model.position.x + 3,
+                                model.position.y + 4,
+                                model.position.z
+                            );
+                            
+                            if (AppState.drTuringSpeech3D.isPlaying) {
+                                requestAnimationFrame(followDrTuring);
+                            }
+                        }
+                    };
+                    followDrTuring();
+                    
+                    // Remover balão após duração
+                    setTimeout(() => {
+                        AppState.drTuringSpeech3D.isPlaying = false;
+                        AppState.drTuringAnimations.stopSpeaking();
+                        
+                        // Voltar iluminação ao normal
+                        if (AppState.drTuringLighting) {
+                            AppState.drTuringLighting.normalIntensity();
+                        }
+                        
+                        if (balloon && balloon.parent) {
+                            // Animação de saída
+                            const fadeOut = () => {
+                                balloon.material.opacity -= 0.05;
+                                if (balloon.material.opacity > 0) {
+                                    requestAnimationFrame(fadeOut);
+                                } else {
+                                    AppState.scene.remove(balloon);
+                                    AppState.drTuringSpeech3D.currentBalloon = null;
+                                }
+                            };
+                            fadeOut();
+                        }
+                    }, duration);
+                };
+            },
+
+            drTuringSpeak3D(text, duration = 5000) {
+                if (AppState.drTuringSpeech3D && AppState.drTuringSpeech3D.speak) {
+                    AppState.drTuringSpeech3D.speak(text, duration);
+                }
+            },
+
+            addDrTuringLighting(model) {
+                // Luz principal da Dra. Turing
+                const drTuringLight = new THREE.SpotLight(0xffffff, 2, 20, Math.PI / 6, 0.5, 1);
+                drTuringLight.position.set(model.position.x, model.position.y + 8, model.position.z + 5);
+                drTuringLight.target.position.copy(model.position);
+                drTuringLight.castShadow = true;
+                drTuringLight.shadow.mapSize.width = 1024;
+                drTuringLight.shadow.mapSize.height = 1024;
+                drTuringLight.name = 'dr-turing-spotlight';
+                
+                AppState.scene.add(drTuringLight);
+                AppState.scene.add(drTuringLight.target);
+                
+                // Luz de preenchimento suave
+                const fillLight = new THREE.PointLight(0x88ccff, 0.8, 15);
+                fillLight.position.set(model.position.x - 3, model.position.y + 2, model.position.z + 3);
+                fillLight.name = 'dr-turing-fill-light';
+                AppState.scene.add(fillLight);
+                
+                // Luz de contorno para efeito dramático
+                const rimLight = new THREE.DirectionalLight(0x00ff88, 0.5);
+                rimLight.position.set(model.position.x + 5, model.position.y + 3, model.position.z - 5);
+                rimLight.target.position.copy(model.position);
+                rimLight.name = 'dr-turing-rim-light';
+                AppState.scene.add(rimLight);
+                AppState.scene.add(rimLight.target);
+                
+                // Sistema de intensidade dinâmica quando fala
+                AppState.drTuringLighting = {
+                    spotlight: drTuringLight,
+                    fillLight: fillLight,
+                    rimLight: rimLight,
+                    
+                    intensifyWhenSpeaking: () => {
+                        drTuringLight.intensity = 3;
+                        fillLight.intensity = 1.2;
+                        rimLight.intensity = 0.8;
+                    },
+                    
+                    normalIntensity: () => {
+                        drTuringLight.intensity = 2;
+                        fillLight.intensity = 0.8;
+                        rimLight.intensity = 0.5;
+                    }
+                };
+            },
+
+            createDrTuringPlaceholder() {
+                // Criar um placeholder humanóide mais realista se o modelo 3D falhar ao carregar
+                const group = new THREE.Group();
+                
+                // Corpo principal (tronco)
+                const bodyGeometry = new THREE.CapsuleGeometry(0.6, 2, 8, 16);
+                const bodyMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xf8f8ff, // Jaleco branco
+                    transparent: false,
+                    opacity: 1.0
+                });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.position.y = 1;
+                body.castShadow = true;
+                group.add(body);
+                
+                // Cabeça
+                const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+                const headMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xffdbac, // Cor de pele realista
+                    transparent: false,
+                    opacity: 1.0
+                });
+                const head = new THREE.Mesh(headGeometry, headMaterial);
+                head.position.y = 2.5;
+                head.castShadow = true;
+                group.add(head);
+                
+                // Cabelo
+                const hairGeometry = new THREE.SphereGeometry(0.42, 16, 16);
+                const hairMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x2d1b0e, // Castanho escuro
+                    transparent: false,
+                    opacity: 1.0
+                });
+                const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+                hair.position.y = 2.6;
+                hair.scale.set(1, 0.8, 1);
+                hair.castShadow = true;
+                group.add(hair);
+                
+                // Olhos
+                const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+                const eyeMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x4a90e2,
+                    emissive: 0x001122,
+                    emissiveIntensity: 0.2
+                });
+                
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.15, 2.55, 0.35);
+                group.add(leftEye);
+                
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.15, 2.55, 0.35);
+                group.add(rightEye);
+                
+                // Posicionar na cena
+                group.position.set(-8, 0, 5);
+                group.scale.set(2.5, 2.5, 2.5);
+                group.rotation.y = Math.PI / 4;
+                
+                AppState.scene.add(group);
+                AppState.drTuring = group;
+                
+                // Configurar animações
+                this.setupDrTuringAnimations(group);
+                this.setupDrTuringSpeech3D(group);
+                
+                // Adicionar iluminação especial
+                this.addDrTuringLighting(group);
+                
+                // Adicionar luz de destaque adicional para placeholder
+                const turingLight = new THREE.PointLight(0xffffff, 1.5, 15);
+                turingLight.position.set(-8, 4, 5);
+                AppState.scene.add(turingLight);
+                
+                // Adicionar rótulo mais realista
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 512;
+                canvas.height = 128;
+                
+                // Fundo elegante
+                const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, 'rgba(248, 248, 255, 0.95)');
+                gradient.addColorStop(1, 'rgba(0, 200, 255, 0.95)');
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Borda
+                context.strokeStyle = '#00ff88';
+                context.lineWidth = 6;
+                context.strokeRect(0, 0, canvas.width, canvas.height);
+                
+                // Texto
+                context.fillStyle = '#000';
+                context.font = 'bold 36px Arial';
+                context.textAlign = 'center';
+                context.fillText('Dra. Ana Turing', canvas.width / 2, 50);
+                context.font = '24px Arial';
+                context.fillText('Mentora Virtual', canvas.width / 2, 85);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.position.set(-8, 7, 5);
+                sprite.scale.set(6, 1.5, 1);
+                
+                AppState.scene.add(sprite);
+                
+                // Mostrar mensagem inicial
+                setTimeout(() => {
+                    this.drTuringSpeak3D('Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?');
+                }, 2000);
             },
 
             createLaboratoryPlatform() {
@@ -656,7 +1233,11 @@
                                 <p><strong>Sua missão:</strong> Construir um dashboard profissional usando Python, Dash e as melhores práticas da indústria.</p>
                                 <p>Vamos começar calibrando sua estação de trabalho!</p>
                             `,
-                            actions: [{ label: 'Aceitar Missão', callback: () => ModuleSystem.nextStep() }]
+                            actions: [{ label: 'Aceitar Missão', callback: () => {
+                                // Fazer a Dra. Turing falar quando o usuário aceita a missão
+                                ThreeJSSystem.drTuringSpeak3D('Excelente! Você aceitou a missão. Agora vamos configurar seu ambiente de desenvolvimento profissional. Primeiro, precisamos instalar o VS Code, o editor de código mais usado na indústria.', 6000);
+                                ModuleSystem.nextStep();
+                            }}]
                         },
                         {
                             title: 'Passo 1: Instalação do VS Code',
@@ -681,8 +1262,14 @@
                                 <p><em>💡 Essas extensões transformarão seu VS Code numa IDE Python profissional!</em></p>
                             `,
                             actions: [
-                                { label: 'VS Code Instalado', callback: () => ModuleSystem.nextStep() },
-                                { label: 'Já Tenho VS Code', callback: () => ModuleSystem.nextStep() }
+                                { label: 'VS Code Instalado', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Perfeito! Com o VS Code instalado, agora vamos configurar o uv, o gerenciador de pacotes Python mais rápido e moderno da atualidade.', 5000);
+                                    ModuleSystem.nextStep();
+                                }},
+                                { label: 'Já Tenho VS Code', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Ótimo! Você já tem o VS Code. Agora vamos para o próximo passo: instalar o uv para gerenciar nossos pacotes Python.', 5000);
+                                    ModuleSystem.nextStep();
+                                }}
                             ]
                         },
                         {
@@ -711,7 +1298,10 @@
                                 <p><em>⚠️ Pode ser necessário reiniciar o terminal após a instalação.</em></p>
                             `,
                             actions: [
-                                { label: 'uv Instalado', callback: () => ModuleSystem.nextStep() }
+                                { label: 'uv Instalado', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Excelente! O uv está instalado e pronto. Agora vamos criar a estrutura do nosso projeto de análise cardíaca usando as melhores práticas da indústria.', 5000);
+                                    ModuleSystem.nextStep();
+                                }}
                             ]
                         },
                         {
@@ -741,7 +1331,10 @@
                                 <p>✨ O comando <code>uv init</code> criará automaticamente o arquivo <code>pyproject.toml</code> que é o centro de controle do projeto!</p>
                             `,
                             actions: [
-                                { label: 'Projeto Criado', callback: () => ModuleSystem.nextStep() }
+                                { label: 'Projeto Criado', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Fantástico! A estrutura do projeto está criada. Agora vamos instalar as bibliotecas essenciais para construir nosso dashboard de análise cardíaca.', 5000);
+                                    ModuleSystem.nextStep();
+                                }}
                             ]
                         },
                         {
@@ -768,7 +1361,10 @@
                                 <p>🚀 O uv resolverá automaticamente todas as dependências e criará um ambiente virtual!</p>
                             `,
                             actions: [
-                                { label: 'Dependências Instaladas', callback: () => ModuleSystem.nextStep() }
+                                { label: 'Dependências Instaladas', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Perfeito! Todas as bibliotecas estão instaladas. Sua estação de trabalho está completamente calibrada e pronta para a missão! Agora vamos carregar o blueprint do projeto.', 6000);
+                                    ModuleSystem.nextStep();
+                                }}
                             ]
                         },
                         {
@@ -793,7 +1389,10 @@
                                 </div>
                             `,
                             actions: [
-                                { label: 'Ir para Módulo 1', callback: () => ModuleSystem.nextModule() }
+                                { label: 'Ir para Módulo 1', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Excelente trabalho! Sua estação está calibrada. Agora vamos carregar o blueprint 3D do projeto e os dados que analisaremos. Prepare-se para ver a arquitetura ganhar vida!', 7000);
+                                    ModuleSystem.nextModule();
+                                }}
                             ]
                         }
                     ]
@@ -813,7 +1412,10 @@
                                 <p><strong>Clique nos elementos 3D</strong> para ver suas descrições!</p>
                             `,
                             actions: [
-                                { label: 'Carregar Blueprint', callback: () => ModuleSystem.load3DBlueprint() }
+                                { label: 'Carregar Blueprint', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Iniciando carregamento do blueprint 3D! Observe como a arquitetura do projeto se materializa no laboratório virtual. Cada componente tem uma função específica.', 6000);
+                                    ModuleSystem.load3DBlueprint();
+                                }}
                             ]
                         },
                         {
@@ -846,7 +1448,10 @@ dashboard-cardiaco/<br>
                                 </ul>
                             `,
                             actions: [
-                                { label: 'Criar Estrutura', callback: () => ModuleSystem.nextStep() }
+                                { label: 'Criar Estrutura', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Excelente! Agora você entende a organização modular. Esta estrutura facilita a manutenção e o trabalho em equipe. Vamos baixar os dados que analisaremos.', 6000);
+                                    ModuleSystem.nextStep();
+                                }}
                             ]
                         },
                         {
@@ -876,7 +1481,10 @@ dashboard-cardiaco/<br>
                                 <p><em>💡 O arquivo virá compactado (.zip). Extraia o CSV para dentro da pasta data/</em></p>
                             `,
                             actions: [
-                                { label: 'Dataset Baixado', callback: () => ModuleSystem.nextStep() }
+                                { label: 'Dataset Baixado', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Perfeito! O dataset de doenças cardíacas está carregado. Agora temos todos os ingredientes para construir um dashboard incrível. A missão está pronta para começar!', 6000);
+                                    ModuleSystem.nextStep();
+                                }}
                             ]
                         },
                         {
@@ -908,8 +1516,14 @@ dashboard-cardiaco/<br>
                                 </div>
                             `,
                             actions: [
-                                { label: 'Explorar Ambiente', callback: () => UISystem.hidePanel() },
-                                { label: 'Ver Próximos Módulos', callback: () => ModuleSystem.showUpcomingModules() }
+                                { label: 'Explorar Ambiente', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Explore o ambiente 3D! Clique nos blocos da arquitetura para aprender sobre cada componente. Quando estiver pronto, voltaremos para continuar construindo o dashboard.', 7000);
+                                    UISystem.hidePanel();
+                                }},
+                                { label: 'Ver Próximos Módulos', callback: () => {
+                                    ThreeJSSystem.drTuringSpeak3D('Quer saber o que vem pela frente? Vou mostrar os próximos módulos da nossa jornada de construção do dashboard.', 5000);
+                                    ModuleSystem.showUpcomingModules();
+                                }}
                             ]
                         }
                     ]
@@ -1314,6 +1928,9 @@ dashboard-cardiaco/<br>
                 
                 // Adicionar indicador visual de clicabilidade
                 this.addClickabilityIndicator();
+                
+                // Dra. Turing apresenta o projeto
+                this.drTuringPresentsProject();
 
                 // Animar entrada dos objetos
                 this.animateBlueprintEntrance(blueprintGroup);
@@ -1865,6 +2482,38 @@ lint = "ruff check ."`
                         }, 3000);
                     }, 1000);
                 }, 8000);
+            },
+
+            drTuringPresentsProject() {
+                // Aguardar um momento antes da Dra. Turing falar sobre o projeto
+                setTimeout(() => {
+                    this.drTuringSpeak3D(`Excelente! Agora você pode ver a arquitetura 3D do nosso projeto. Cada bloco representa um componente essencial do dashboard que construiremos. Explore passando o mouse sobre os blocos e clique neles para descobrir sua função específica. Nossa missão é analisar fatores de risco de doenças cardíacas usando dados reais do Kaggle. Vamos começar?`, 8000);
+                    
+                    // Fazer a Dra. Turing apontar para o projeto (animação especial)
+                    if (AppState.drTuringAnimations && AppState.drTuringAnimations.walkTo) {
+                        setTimeout(() => {
+                            // Caminhar para mais perto do projeto
+                            AppState.drTuringAnimations.walkTo(-5, 2, 2000);
+                        }, 3000);
+                        
+                        setTimeout(() => {
+                            this.drTuringSpeak3D(`Cada pasta e arquivo tem uma função específica. Clique nos elementos para aprender mais!`, 4000);
+                        }, 6000);
+                    }
+                }, 3000);
+            },
+
+            drTuringSpeak(message) {
+                // Método legado - agora redireciona para o sistema 3D
+                if (typeof message === 'string') {
+                    // Extrair texto limpo do HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = message;
+                    const cleanText = tempDiv.textContent || tempDiv.innerText || message;
+                    this.drTuringSpeak3D(cleanText, 6000);
+                } else {
+                    this.drTuringSpeak3D(message, 6000);
+                }
             },
 
             addBreathingEffect(mesh, index) {
