@@ -1275,6 +1275,9 @@ dashboard-cardiaco/<br>
                         mesh.castShadow = true;
                         mesh.receiveShadow = true;
                         
+                        // Adicionar efeito de "respiração" para indicar interatividade
+                        this.addBreathingEffect(mesh, index);
+                        
                         // Adicionar borda wireframe
                         const wireframe = new THREE.WireframeGeometry(geometry);
                         const wireframeMaterial = new THREE.LineBasicMaterial({ 
@@ -1308,6 +1311,9 @@ dashboard-cardiaco/<br>
 
                 // Sistema de hover para informações detalhadas
                 this.setupHoverSystem();
+                
+                // Adicionar indicador visual de clicabilidade
+                this.addClickabilityIndicator();
 
                 // Animar entrada dos objetos
                 this.animateBlueprintEntrance(blueprintGroup);
@@ -1369,7 +1375,7 @@ dashboard-cardiaco/<br>
                 `;
                 document.body.appendChild(infoPanel);
 
-                // Sistema de raycasting para hover
+                // Sistema de raycasting para hover e clique
                 const raycaster = new THREE.Raycaster();
                 const mouse = new THREE.Vector2();
                 
@@ -1397,12 +1403,23 @@ dashboard-cardiaco/<br>
                                     <strong style="color: #004d2a;">⚙️ Função:</strong><br>
                                     <span style="font-size: 16px;">${info.function}</span>
                                 </div>
-                                <div>
+                                <div style="margin-bottom: 12px;">
                                     <strong style="color: #004d2a;">⭐ Importância:</strong><br>
                                     <span style="font-size: 16px; font-weight: bold;">${info.importance}</span>
                                 </div>
+                                <div style="border-top: 2px solid #000; padding-top: 10px; margin-top: 15px;">
+                                    <strong style="color: #004d2a;">🖱️ Interação:</strong><br>
+                                    <span style="font-size: 14px; color: #006d3a;">
+                                        ${object.userData.type === 'folder' ? 
+                                            '🔍 Clique para explorar esta pasta!' : 
+                                            '📄 Clique para ver o conteúdo do arquivo!'}
+                                    </span>
+                                </div>
                             `;
                             infoPanel.style.display = 'block';
+                            
+                            // Cursor pointer para indicar clicável
+                            document.body.style.cursor = 'pointer';
                             foundInfo = true;
                             break;
                         }
@@ -1410,10 +1427,28 @@ dashboard-cardiaco/<br>
                     
                     if (!foundInfo) {
                         infoPanel.style.display = 'none';
+                        document.body.style.cursor = 'default';
+                    }
+                };
+                
+                const onClick = (event) => {
+                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                    
+                    raycaster.setFromCamera(mouse, this.camera);
+                    const intersects = raycaster.intersectObjects(AppState.scene.children, true);
+                    
+                    for (let intersect of intersects) {
+                        const object = intersect.object;
+                        if (object.userData && object.userData.projectInfo) {
+                            this.handleBlockClick(object);
+                            break;
+                        }
                     }
                 };
                 
                 window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('click', onClick);
                 
                 // Instrução para o usuário
                 const instructionPanel = document.createElement('div');
@@ -1423,16 +1458,33 @@ dashboard-cardiaco/<br>
                     left: 20px;
                     background: rgba(0, 255, 136, 0.9);
                     color: #000;
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid #00ff88;
+                    padding: 20px;
+                    border-radius: 15px;
+                    border: 3px solid #00ff88;
                     font-family: Arial, sans-serif;
-                    font-size: 16px;
+                    font-size: 18px;
                     font-weight: bold;
                     z-index: 1000;
-                    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+                    box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
+                    max-width: 350px;
                 `;
-                instructionPanel.innerHTML = '🔍 Passe o mouse sobre os blocos para ver detalhes!';
+                instructionPanel.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        🎯 <u>COMO INTERAGIR</u>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        🔍 <strong>Hover:</strong> Passe o mouse para ver detalhes
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        🖱️ <strong>Clique:</strong> Clique nos blocos para explorar
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        🎮 <strong>Câmera:</strong> Arraste para rotacionar a visão
+                    </div>
+                    <div style="font-size: 14px; color: #004d2a; text-align: center; margin-top: 15px;">
+                        Experimente clicar em cada bloco! ✨
+                    </div>
+                `;
                 document.body.appendChild(instructionPanel);
                 
                 // Remover instrução após alguns segundos
@@ -1440,7 +1492,402 @@ dashboard-cardiaco/<br>
                     instructionPanel.style.opacity = '0';
                     instructionPanel.style.transition = 'opacity 2s';
                     setTimeout(() => instructionPanel.remove(), 2000);
-                }, 5000);
+                }, 7000);
+            },
+
+            handleBlockClick(clickedObject) {
+                const info = clickedObject.userData.projectInfo;
+                console.log(`Clicou em: ${info.name}`);
+                
+                // Efeito visual de clique
+                this.animateClickEffect(clickedObject);
+                
+                // Criar modal de detalhes expandidos
+                this.showDetailModal(info);
+                
+                // Feedback sonoro visual (pulso de luz)
+                this.createClickFeedback(clickedObject);
+            },
+
+            animateClickEffect(object) {
+                const originalScale = { x: object.scale.x, y: object.scale.y, z: object.scale.z };
+                const targetScale = 1.3;
+                const duration = 300;
+                
+                // Animação de "pulse" no clique
+                let startTime = Date.now();
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    if (progress < 0.5) {
+                        // Expandir
+                        const scale = 1 + (targetScale - 1) * (progress * 2);
+                        object.scale.set(scale, scale, scale);
+                    } else {
+                        // Contrair
+                        const scale = targetScale - (targetScale - 1) * ((progress - 0.5) * 2);
+                        object.scale.set(scale, scale, scale);
+                    }
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        object.scale.set(originalScale.x, originalScale.y, originalScale.z);
+                    }
+                };
+                animate();
+            },
+
+            createClickFeedback(object) {
+                // Criar um ring de energia que se expande
+                const ringGeometry = new THREE.RingGeometry(0.5, 1, 32);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.position.copy(object.position);
+                ring.position.y += 3;
+                ring.lookAt(this.camera.position);
+                
+                AppState.scene.add(ring);
+                
+                // Animação do ring
+                let startTime = Date.now();
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / 1000;
+                    
+                    if (progress < 1) {
+                        const scale = 1 + progress * 3;
+                        ring.scale.set(scale, scale, scale);
+                        ring.material.opacity = 0.8 * (1 - progress);
+                        requestAnimationFrame(animate);
+                    } else {
+                        AppState.scene.remove(ring);
+                    }
+                };
+                animate();
+            },
+
+            showDetailModal(info) {
+                // Remover modal existente se houver
+                const existingModal = document.getElementById('detail-modal');
+                if (existingModal) existingModal.remove();
+                
+                const modal = document.createElement('div');
+                modal.id = 'detail-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 2000;
+                    backdrop-filter: blur(5px);
+                `;
+                
+                const content = this.getDetailedContent(info);
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: linear-gradient(135deg, rgba(0, 255, 136, 0.95), rgba(0, 200, 255, 0.9));
+                        padding: 40px;
+                        border-radius: 20px;
+                        border: 4px solid #00ff88;
+                        max-width: 600px;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 0 50px rgba(0, 255, 136, 0.8);
+                        color: #000;
+                        font-family: Arial, sans-serif;
+                        position: relative;
+                    ">
+                        <button style="
+                            position: absolute;
+                            top: 15px;
+                            right: 20px;
+                            background: #ff4757;
+                            color: white;
+                            border: none;
+                            width: 35px;
+                            height: 35px;
+                            border-radius: 50%;
+                            font-size: 18px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                        " onclick="this.parentElement.parentElement.remove()">×</button>
+                        ${content}
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Fechar modal clicando fora
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.remove();
+                });
+                
+                // Fechar com ESC
+                const handleEsc = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEsc);
+                    }
+                };
+                document.addEventListener('keydown', handleEsc);
+            },
+
+            getDetailedContent(info) {
+                const detailsMap = {
+                    'app/': {
+                        structure: [
+                            '📄 __init__.py - Inicialização do módulo',
+                            '📄 models.py - Modelos de dados',
+                            '📄 views.py - Lógica de visualização',
+                            '📄 routers.py - Definição de rotas',
+                            '📁 templates/ - Templates HTML',
+                            '📁 static/ - Arquivos CSS, JS, imagens'
+                        ],
+                        code: `# Exemplo de estrutura em models.py
+import pandas as pd
+from dash import html, dcc
+
+class DataModel:
+    def __init__(self):
+        self.data = pd.read_csv('data/heart_disease.csv')
+    
+    def get_summary(self):
+        return self.data.describe()`
+                    },
+                    'data/': {
+                        structure: [
+                            '📊 heart_disease.csv - Dataset principal',
+                            '📄 preprocessing.py - Limpeza de dados',
+                            '📁 raw/ - Dados brutos',
+                            '📁 processed/ - Dados processados',
+                            '📄 schema.json - Esquema dos dados'
+                        ],
+                        code: `# Exemplo de carregamento de dados
+import pandas as pd
+
+# Carregar dataset
+df = pd.read_csv('heart_disease.csv')
+print(f"Dataset: {df.shape[0]} linhas, {df.shape[1]} colunas")
+
+# Estatísticas básicas
+df.describe()`
+                    },
+                    'utils/': {
+                        structure: [
+                            '📄 helpers.py - Funções auxiliares',
+                            '📄 validators.py - Validações',
+                            '📄 formatters.py - Formatação de dados',
+                            '📄 constants.py - Constantes do projeto'
+                        ],
+                        code: `# Exemplo de helper functions
+def format_percentage(value):
+    return f"{value:.1%}"
+
+def validate_data(df):
+    return not df.empty and len(df.columns) > 0
+
+def clean_column_names(df):
+    return df.columns.str.lower().str.replace(' ', '_')`
+                    },
+                    'tests/': {
+                        structure: [
+                            '📄 test_models.py - Testes dos modelos',
+                            '📄 test_views.py - Testes das views',
+                            '📄 test_utils.py - Testes utilitários',
+                            '📄 conftest.py - Configuração pytest'
+                        ],
+                        code: `# Exemplo de teste
+import pytest
+import pandas as pd
+from app.models import DataModel
+
+def test_data_loading():
+    model = DataModel()
+    assert not model.data.empty
+    assert len(model.data.columns) > 0
+
+def test_summary_generation():
+    model = DataModel()
+    summary = model.get_summary()
+    assert isinstance(summary, pd.DataFrame)`
+                    },
+                    'main.py': {
+                        structure: [
+                            '🚀 Ponto de entrada da aplicação',
+                            '⚙️ Configuração do servidor Dash',
+                            '🔗 Importação de todas as rotas',
+                            '🎯 Inicialização da aplicação'
+                        ],
+                        code: `# main.py - Arquivo principal
+from dash import Dash
+from app.routers import register_routes
+from app.models import DataModel
+
+# Criar aplicação Dash
+app = Dash(__name__)
+
+# Registrar rotas
+register_routes(app)
+
+# Configurar dados
+data_model = DataModel()
+
+if __name__ == '__main__':
+    app.run_server(debug=True, port=8050)`
+                    },
+                    'pyproject.toml': {
+                        structure: [
+                            '📦 Dependências do projeto',
+                            '⚙️ Configurações de build',
+                            '🔧 Scripts de automação',
+                            '📋 Metadados do projeto'
+                        ],
+                        code: `# pyproject.toml
+[project]
+name = "dashboard-cardiaco"
+version = "1.0.0"
+dependencies = [
+    "dash>=2.14.0",
+    "dash-mantine-components>=0.12.0",
+    "pandas>=2.0.0",
+    "plotly>=5.15.0"
+]
+
+[project.scripts]
+start = "python main.py"
+test = "pytest tests/"
+lint = "ruff check ."`
+                    }
+                };
+                
+                const details = detailsMap[info.name] || { structure: [], code: '' };
+                
+                return `
+                    <h2 style="margin: 0 0 20px 0; color: #000; text-align: center; font-size: 28px;">
+                        📁 ${info.name}
+                    </h2>
+                    
+                    <div style="margin-bottom: 25px; padding: 20px; background: rgba(0,0,0,0.1); border-radius: 10px;">
+                        <h3 style="margin: 0 0 10px 0; color: #004d2a;">📋 Descrição</h3>
+                        <p style="margin: 0; font-size: 18px;">${info.description}</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 25px; padding: 20px; background: rgba(0,0,0,0.1); border-radius: 10px;">
+                        <h3 style="margin: 0 0 15px 0; color: #004d2a;">🏗️ Estrutura Interna</h3>
+                        ${details.structure.map(item => `<div style="margin: 8px 0; font-size: 16px;">• ${item}</div>`).join('')}
+                    </div>
+                    
+                    ${details.code ? `
+                    <div style="margin-bottom: 20px; padding: 20px; background: rgba(0,0,0,0.1); border-radius: 10px;">
+                        <h3 style="margin: 0 0 15px 0; color: #004d2a;">💻 Exemplo de Código</h3>
+                        <pre style="
+                            background: #000; 
+                            color: #00ff88; 
+                            padding: 15px; 
+                            border-radius: 8px; 
+                            font-size: 14px; 
+                            overflow-x: auto;
+                            margin: 0;
+                        ">${details.code}</pre>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <div style="font-size: 14px; color: #004d2a;">
+                            💡 Clique em outros blocos para explorar mais componentes!
+                        </div>
+                    </div>
+                `;
+            },
+
+            addClickabilityIndicator() {
+                // Criar indicador fixo na tela
+                const clickIndicator = document.createElement('div');
+                clickIndicator.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 255, 136, 0.9);
+                    color: #000;
+                    padding: 15px 25px;
+                    border-radius: 25px;
+                    border: 3px solid #00ff88;
+                    font-family: Arial, sans-serif;
+                    font-size: 16px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+                    text-align: center;
+                    animation: pulse 2s infinite;
+                `;
+                
+                clickIndicator.innerHTML = `
+                    🖱️ <span style="color: #004d2a;">CLIQUE NOS BLOCOS</span> para explorar! ✨
+                `;
+                
+                // Adicionar animação CSS
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes pulse {
+                        0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+                        50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 30px rgba(0, 255, 136, 0.8); }
+                        100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+                    }
+                `;
+                document.head.appendChild(style);
+                document.body.appendChild(clickIndicator);
+                
+                // Remover após um tempo mas reaparecer periodicamente
+                setTimeout(() => {
+                    clickIndicator.style.opacity = '0';
+                    clickIndicator.style.transition = 'opacity 1s';
+                    setTimeout(() => {
+                        clickIndicator.style.opacity = '0.8';
+                        clickIndicator.innerHTML = '💡 Lembre-se: os blocos são interativos!';
+                        setTimeout(() => {
+                            clickIndicator.style.opacity = '0';
+                            setTimeout(() => clickIndicator.remove(), 1000);
+                        }, 3000);
+                    }, 1000);
+                }, 8000);
+            },
+
+            addBreathingEffect(mesh, index) {
+                // Efeito de "respiração" sutil para indicar interatividade
+                const originalEmissiveIntensity = mesh.material.emissiveIntensity;
+                let breathingDirection = 1;
+                
+                const breathe = () => {
+                    if (mesh.material) {
+                        mesh.material.emissiveIntensity += 0.003 * breathingDirection;
+                        
+                        if (mesh.material.emissiveIntensity >= 0.25) {
+                            breathingDirection = -1;
+                        } else if (mesh.material.emissiveIntensity <= 0.05) {
+                            breathingDirection = 1;
+                        }
+                    }
+                    
+                    requestAnimationFrame(breathe);
+                };
+                
+                // Começar cada objeto em momentos ligeiramente diferentes
+                setTimeout(() => breathe(), index * 200);
             },
 
             createImprovedLabel(item, index, group) {
