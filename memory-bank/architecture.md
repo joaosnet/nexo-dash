@@ -2,7 +2,9 @@
 
 ## Visão Geral Técnica
 
-O Nexo Dash é uma aplicação web educacional de arquivo único (single HTML file) que combina um ambiente de laboratório virtual 3D com execução de Python no navegador para ensinar desenvolvimento Dash de forma imersiva.
+O Nexo Dash é uma aplicação web educacional modularizada que combina um ambiente de laboratório virtual 3D com execução de Python no navegador para ensinar desenvolvimento Dash de forma imersiva.
+
+**🔄 ATUALIZAÇÃO**: A aplicação foi refatorada de um arquivo único para uma arquitetura modular para melhor manutenibilidade e escalabilidade.
 
 ## Stack Tecnológico Principal
 
@@ -29,12 +31,33 @@ O Nexo Dash é uma aplicação web educacional de arquivo único (single HTML fi
 
 ## Arquitetura do Sistema
 
-### Estrutura de Arquivos (Arquivo Único)
+### Estrutura de Arquivos (Modularizada)
 ```
 nexo-dash/
-├── index.html           # Aplicação completa
-├── memory-bank/         # Documentação e especificações
-│   ├── architecture.md  # Este arquivo
+├── index.html                    # Redirecionador para compatibilidade
+├── src/                         # Código fonte modularizado
+│   ├── index.html              # HTML principal modularizado
+│   ├── js/                     # JavaScript modularizado
+│   │   ├── config.js          # Configurações centralizadas
+│   │   ├── main.js            # Script principal e inicialização
+│   │   ├── core/              # Módulos centrais
+│   │   │   ├── appstate.js    # Estado global da aplicação
+│   │   │   └── loading-system.js # Sistema de carregamento
+│   │   └── systems/           # Sistemas da aplicação
+│   │       ├── threejs-system.js  # Sistema Three.js
+│   │       ├── pyodide-system.js  # Sistema Python
+│   │       ├── ui-system.js       # Sistema de interface
+│   │       └── module-system.js   # Sistema de módulos educacionais
+│   ├── styles/                # CSS modularizado
+│   │   ├── main.css           # Estilos principais
+│   │   ├── loading.css        # Estilos da tela de carregamento
+│   │   ├── panels.css         # Estilos dos painéis holográficos
+│   │   ├── responsive.css     # Estilos responsivos
+│   │   └── animations.css     # Animações
+│   └── README.md              # Documentação da estrutura modular
+├── assets/                    # Assets 3D e recursos
+├── memory-bank/              # Documentação e especificações
+│   ├── architecture.md       # Este arquivo (atualizado)
 │   ├── game-design-document.md
 │   ├── implementation-plan.md
 │   ├── progress.md
