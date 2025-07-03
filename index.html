@@ -600,6 +600,13 @@
                 // Mostrar mensagem inicial com animação de entrada
                 setTimeout(() => {
                     this.drTuringSpeak3D(`Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?`);
+                    
+                    // Adicionar gesto de boas-vindas
+                    setTimeout(() => {
+                        if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                            AppState.drTuringAnimations.performGesture('wave');
+                        }
+                    }, 1000);
                 }, 2000);
                         
                         LoadingSystem.updateProgress(4, 'Dra. Turing online!');
@@ -616,34 +623,77 @@
             },
 
             setupDrTuringAnimations(model) {
-                // Sistema de animações da Dra. Turing
+                // Sistema de animações humanizadas da Dra. Turing
                 AppState.drTuringAnimations = {
                     idleAnimation: null,
                     speakingAnimation: null,
                     walkAnimation: null,
+                    gestureAnimation: null,
                     isSpeaking: false,
-                    isWalking: false
+                    isWalking: false,
+                    isGesturing: false,
+                    breathingPhase: 0,
+                    blinkTimer: 0,
+                    nextBlinkTime: Math.random() * 3000 + 2000,
+                    basePosition: { x: model.position.x, y: model.position.y, z: model.position.z },
+                    baseRotation: { x: model.rotation.x, y: model.rotation.y, z: model.rotation.z }
                 };
 
-                // Animação Idle (quando não está falando)
-                const startIdleAnimation = () => {
-                    let time = 0;
-                    const originalY = model.position.y;
-                    const originalRotY = model.rotation.y;
+                // Partes do corpo para animação (se disponível no modelo GLTF)
+                const bodyParts = {
+                    head: model.getObjectByName('Head') || model.getObjectByName('head') || null,
+                    leftArm: model.getObjectByName('LeftArm') || model.getObjectByName('left_arm') || null,
+                    rightArm: model.getObjectByName('RightArm') || model.getObjectByName('right_arm') || null,
+                    spine: model.getObjectByName('Spine') || model.getObjectByName('spine') || null,
+                    eyes: model.getObjectByName('Eyes') || model.getObjectByName('eyes') || null
+                };
 
+                // Animação Idle realista (respiração, piscar, micro-movimentos)
+                const startIdleAnimation = () => {
                     const animate = () => {
                         if (!AppState.drTuringAnimations.isSpeaking && !AppState.drTuringAnimations.isWalking) {
-                            time += 0.005;
+                            const time = Date.now() * 0.001;
+                            const basePos = AppState.drTuringAnimations.basePosition;
+                            const baseRot = AppState.drTuringAnimations.baseRotation;
+
+                            // Respiração natural (ciclo de 4 segundos)
+                            const breathingCycle = Math.sin(time * 0.5) * 0.03;
+                            model.position.y = basePos.y + breathingCycle;
                             
-                            // Respiração sutil
-                            model.position.y = originalY + Math.sin(time * 2) * 0.05;
+                            // Expansão sutil do peito durante respiração
+                            if (bodyParts.spine) {
+                                bodyParts.spine.scale.y = 1 + breathingCycle * 0.1;
+                            }
+
+                            // Micro-movimentos naturais da cabeça
+                            const headSway = Math.sin(time * 0.3) * 0.05 + Math.sin(time * 0.7) * 0.02;
+                            const headNod = Math.sin(time * 0.2) * 0.03;
                             
-                            // Olhar para diferentes direções ocasionalmente
-                            const lookDirection = Math.sin(time * 0.3) * 0.2;
-                            model.rotation.y = originalRotY + lookDirection;
-                            
-                            // Movimento sutil de balanço
-                            model.rotation.z = Math.sin(time * 1.5) * 0.02;
+                            if (bodyParts.head) {
+                                bodyParts.head.rotation.y = headSway;
+                                bodyParts.head.rotation.x = headNod;
+                            } else {
+                                // Aplicar no modelo inteiro se não há cabeça separada
+                                model.rotation.y = baseRot.y + headSway;
+                                model.rotation.x = baseRot.x + headNod;
+                            }
+
+                            // Sistema de piscar realista
+                            AppState.drTuringAnimations.blinkTimer += 16; // ~60fps
+                            if (AppState.drTuringAnimations.blinkTimer >= AppState.drTuringAnimations.nextBlinkTime) {
+                                this.performBlink();
+                                AppState.drTuringAnimations.blinkTimer = 0;
+                                AppState.drTuringAnimations.nextBlinkTime = Math.random() * 4000 + 1500; // 1.5-5.5s
+                            }
+
+                            // Peso corporal shifting sutil
+                            const weightShift = Math.sin(time * 0.15) * 0.01;
+                            model.rotation.z = baseRot.z + weightShift;
+
+                            // Ocasionalmente olhar para pontos de interesse
+                            if (Math.random() < 0.001) { // 0.1% chance por frame
+                                this.performCasualLook();
+                            }
                         }
                         
                         AppState.drTuringAnimations.idleAnimation = requestAnimationFrame(animate);
@@ -652,24 +702,47 @@
                     animate();
                 };
 
-                // Animação de fala (quando está falando)
+                // Animação de fala humanizada
                 const startSpeakingAnimation = () => {
-                    let time = 0;
-                    const originalY = model.position.y;
-
                     const animate = () => {
                         if (AppState.drTuringAnimations.isSpeaking) {
-                            time += 0.02;
-                            
-                            // Movimento mais expressivo quando falando
-                            model.position.y = originalY + Math.sin(time * 3) * 0.1;
-                            
-                            // Gestos com as mãos (rotação sutil)
-                            model.rotation.z = Math.sin(time * 2) * 0.05;
-                            
-                            // Movimento da cabeça
-                            const headTurn = Math.sin(time * 1.2) * 0.1;
-                            model.rotation.y = Math.PI / 4 + headTurn;
+                            const time = Date.now() * 0.001;
+                            const basePos = AppState.drTuringAnimations.basePosition;
+                            const baseRot = AppState.drTuringAnimations.baseRotation;
+
+                            // Respiração mais pronunciada durante fala
+                            const speakingBreath = Math.sin(time * 2) * 0.08;
+                            model.position.y = basePos.y + speakingBreath;
+
+                            // Movimentos expressivos da cabeça
+                            const headExpression = Math.sin(time * 1.5) * 0.15;
+                            const headEmphasis = Math.sin(time * 0.8) * 0.08;
+
+                            if (bodyParts.head) {
+                                bodyParts.head.rotation.y = headExpression;
+                                bodyParts.head.rotation.x = headEmphasis;
+                            } else {
+                                model.rotation.y = baseRot.y + headExpression;
+                                model.rotation.x = baseRot.x + headEmphasis;
+                            }
+
+                            // Gestos naturais com as mãos
+                            if (bodyParts.leftArm && bodyParts.rightArm) {
+                                const gesturePhase = time * 0.7;
+                                bodyParts.leftArm.rotation.z = Math.sin(gesturePhase) * 0.3;
+                                bodyParts.rightArm.rotation.z = Math.sin(gesturePhase + Math.PI) * 0.25;
+                                bodyParts.leftArm.rotation.x = Math.sin(gesturePhase * 0.5) * 0.2;
+                                bodyParts.rightArm.rotation.x = Math.sin(gesturePhase * 0.5 + Math.PI/3) * 0.15;
+                            }
+
+                            // Movimento corporal engajado
+                            const bodyEngagement = Math.sin(time * 1.2) * 0.03;
+                            model.rotation.z = baseRot.z + bodyEngagement;
+
+                            // Piscar mais frequente durante fala (mais expressivo)
+                            if (Math.random() < 0.003) { // Mais frequente
+                                this.performBlink();
+                            }
                             
                             AppState.drTuringAnimations.speakingAnimation = requestAnimationFrame(animate);
                         }
@@ -678,45 +751,169 @@
                     animate();
                 };
 
-                // Animação de caminhada (quando se move)
+                // Animação de caminhada humanizada
                 const walkToPosition = (targetX, targetZ, duration = 3000) => {
                     AppState.drTuringAnimations.isWalking = true;
                     
-                    const startPos = { x: model.position.x, z: model.position.z };
+                    const startPos = { 
+                        x: model.position.x, 
+                        y: AppState.drTuringAnimations.basePosition.y,
+                        z: model.position.z 
+                    };
                     const startTime = Date.now();
+                    
+                    // Calcular direção e distância
+                    const deltaX = targetX - startPos.x;
+                    const deltaZ = targetZ - startPos.z;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+                    const direction = Math.atan2(deltaZ, deltaX);
                     
                     const animate = () => {
                         const elapsed = Date.now() - startTime;
                         const progress = Math.min(elapsed / duration, 1);
                         
-                        // Interpolação suave
-                        const easedProgress = 1 - Math.pow(1 - progress, 3);
+                        // Easing natural para aceleração/desaceleração
+                        const easedProgress = this.humanizedEasing(progress);
                         
-                        // Atualizar posição
-                        model.position.x = startPos.x + (targetX - startPos.x) * easedProgress;
-                        model.position.z = startPos.z + (targetZ - startPos.z) * easedProgress;
+                        // Atualizar posição principal
+                        model.position.x = startPos.x + (deltaX * easedProgress);
+                        model.position.z = startPos.z + (deltaZ * easedProgress);
                         
-                        // Animar caminhada
-                        const walkCycle = elapsed * 0.01;
-                        model.position.y = Math.sin(walkCycle) * 0.15;
-                        model.rotation.z = Math.sin(walkCycle * 2) * 0.1;
+                        // Ciclo de caminhada natural
+                        const walkSpeed = (distance / duration) * 1000; // pixels/segundo
+                        const stepFrequency = Math.max(1.5, walkSpeed * 0.001); // Ajustar frequência baseada na velocidade
+                        const walkCycle = elapsed * 0.001 * stepFrequency;
                         
-                        // Olhar na direção do movimento
-                        const direction = Math.atan2(targetZ - startPos.z, targetX - startPos.x);
+                        // Movimento vertical da caminhada (bounce natural)
+                        const stepHeight = Math.abs(Math.sin(walkCycle * Math.PI)) * 0.15;
+                        model.position.y = startPos.y + stepHeight;
+                        
+                        // Rotação do corpo durante caminhada
                         model.rotation.y = direction + Math.PI / 2;
+                        
+                        // Balanço natural do corpo
+                        const bodyRock = Math.sin(walkCycle * Math.PI) * 0.08;
+                        model.rotation.z = bodyRock;
+                        
+                        // Balanço dos braços (se disponível)
+                        if (bodyParts.leftArm && bodyParts.rightArm) {
+                            const armSwing = walkCycle * Math.PI;
+                            bodyParts.leftArm.rotation.x = Math.sin(armSwing) * 0.5;
+                            bodyParts.rightArm.rotation.x = Math.sin(armSwing + Math.PI) * 0.5;
+                        }
+                        
+                        // Movimento da cabeça durante caminhada
+                        if (bodyParts.head) {
+                            bodyParts.head.rotation.y = Math.sin(walkCycle * Math.PI * 0.5) * 0.1;
+                            bodyParts.head.rotation.x = -0.05; // Olhar ligeiramente para frente
+                        }
                         
                         if (progress < 1) {
                             AppState.drTuringAnimations.walkAnimation = requestAnimationFrame(animate);
                         } else {
+                            // Finalizar caminhada suavemente
                             AppState.drTuringAnimations.isWalking = false;
-                            model.rotation.y = Math.PI / 4; // Voltar para posição padrão
+                            model.position.y = AppState.drTuringAnimations.basePosition.y;
+                            model.rotation.y = AppState.drTuringAnimations.baseRotation.y;
+                            model.rotation.z = AppState.drTuringAnimations.baseRotation.z;
+                            
+                            // Reset dos braços
+                            if (bodyParts.leftArm && bodyParts.rightArm) {
+                                bodyParts.leftArm.rotation.x = 0;
+                                bodyParts.rightArm.rotation.x = 0;
+                            }
                         }
                     };
                     
                     animate();
                 };
 
-                // Métodos públicos
+                // Função de easing humanizado
+                this.humanizedEasing = (t) => {
+                    // Curva que simula aceleração e desaceleração humana natural
+                    if (t < 0.1) {
+                        // Aceleração inicial gradual
+                        return t * t * 10;
+                    } else if (t > 0.9) {
+                        // Desaceleração final suave
+                        const remaining = (t - 0.9) / 0.1;
+                        return 0.81 + (1 - 0.81) * (1 - (1 - remaining) * (1 - remaining));
+                    } else {
+                        // Movimento constante no meio
+                        return 0.1 + (t - 0.1) * 0.9;
+                    }
+                };
+
+                // Sistema de piscar realista
+                this.performBlink = () => {
+                    if (bodyParts.eyes) {
+                        const originalScale = bodyParts.eyes.scale.y;
+                        
+                        // Animação rápida de fechar e abrir olhos
+                        const blinkDuration = 150;
+                        const startTime = Date.now();
+                        
+                        const animateBlink = () => {
+                            const elapsed = Date.now() - startTime;
+                            const progress = elapsed / blinkDuration;
+                            
+                            if (progress < 0.5) {
+                                // Fechar olhos
+                                bodyParts.eyes.scale.y = originalScale * (1 - progress * 2);
+                            } else {
+                                // Abrir olhos
+                                bodyParts.eyes.scale.y = originalScale * ((progress - 0.5) * 2);
+                            }
+                            
+                            if (progress < 1) {
+                                requestAnimationFrame(animateBlink);
+                            } else {
+                                bodyParts.eyes.scale.y = originalScale;
+                            }
+                        };
+                        
+                        animateBlink();
+                    }
+                };
+
+                // Olhadas casuais para pontos de interesse
+                this.performCasualLook = () => {
+                    if (bodyParts.head && !AppState.drTuringAnimations.isSpeaking) {
+                        const currentRotY = bodyParts.head.rotation.y;
+                        const lookDirection = (Math.random() - 0.5) * 0.5; // -0.25 a 0.25 radianos
+                        const lookDuration = 1000 + Math.random() * 2000; // 1-3 segundos
+                        
+                        const startTime = Date.now();
+                        const startRotation = currentRotY;
+                        
+                        const animateLook = () => {
+                            const elapsed = Date.now() - startTime;
+                            const progress = Math.min(elapsed / lookDuration, 1);
+                            
+                            let easeProgress;
+                            if (progress < 0.3) {
+                                // Mover para direção
+                                easeProgress = progress / 0.3;
+                                bodyParts.head.rotation.y = startRotation + lookDirection * easeProgress;
+                            } else if (progress < 0.7) {
+                                // Manter olhar
+                                bodyParts.head.rotation.y = startRotation + lookDirection;
+                            } else {
+                                // Voltar ao centro
+                                easeProgress = (progress - 0.7) / 0.3;
+                                bodyParts.head.rotation.y = startRotation + lookDirection * (1 - easeProgress);
+                            }
+                            
+                            if (progress < 1) {
+                                requestAnimationFrame(animateLook);
+                            }
+                        };
+                        
+                        animateLook();
+                    }
+                };
+
+                // Métodos públicos melhorados
                 AppState.drTuringAnimations.startSpeaking = () => {
                     AppState.drTuringAnimations.isSpeaking = true;
                     startSpeakingAnimation();
@@ -731,8 +928,342 @@
 
                 AppState.drTuringAnimations.walkTo = walkToPosition;
 
+                // Adicionar gesture system melhorado
+                AppState.drTuringAnimations.performGesture = (gestureType = 'point') => {
+                    if (AppState.drTuringAnimations.isGesturing) return;
+                    
+                    AppState.drTuringAnimations.isGesturing = true;
+                    
+                    const rightArm = bodyParts.rightArm || model.getObjectByName('right_arm');
+                    const leftArm = bodyParts.leftArm || model.getObjectByName('left_arm');
+                    const head = bodyParts.head || model.getObjectByName('head');
+                    
+                    switch(gestureType) {
+                        case 'point':
+                            this.performPointGesture(rightArm);
+                            break;
+                        case 'wave':
+                            this.performWaveGesture(rightArm);
+                            break;
+                        case 'welcome':
+                            this.performWelcomeGesture(leftArm, rightArm);
+                            break;
+                        case 'explain':
+                            this.performExplainGesture(leftArm, rightArm, head);
+                            break;
+                        case 'think':
+                            this.performThinkGesture(rightArm, head);
+                            break;
+                        case 'encourage':
+                            this.performEncourageGesture(leftArm, rightArm);
+                            break;
+                        default:
+                            this.performPointGesture(rightArm);
+                    }
+                };
+
+                // Gestos específicos com animações naturais
+                this.performPointGesture = (arm) => {
+                    if (!arm) return this.finishGesture();
+                    
+                    const originalRotation = { x: arm.rotation.x, y: arm.rotation.y, z: arm.rotation.z };
+                    const gestureDuration = 2500;
+                    const startTime = Date.now();
+                    
+                    const animateGesture = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / gestureDuration, 1);
+                        
+                        if (progress < 0.3) {
+                            // Levantar braço
+                            const raiseProgress = progress / 0.3;
+                            arm.rotation.x = originalRotation.x - raiseProgress * 0.9;
+                            arm.rotation.z = originalRotation.z + raiseProgress * 0.6;
+                        } else if (progress < 0.7) {
+                            // Manter posição com micro-ajustes
+                            const holdPhase = (progress - 0.3) / 0.4;
+                            const microMovement = Math.sin(holdPhase * Math.PI * 4) * 0.05;
+                            arm.rotation.x = originalRotation.x - 0.9 + microMovement;
+                            arm.rotation.z = originalRotation.z + 0.6;
+                        } else {
+                            // Baixar braço suavemente
+                            const lowerProgress = (progress - 0.7) / 0.3;
+                            const easedLower = 1 - Math.pow(1 - lowerProgress, 3);
+                            arm.rotation.x = (originalRotation.x - 0.9) + easedLower * 0.9;
+                            arm.rotation.z = (originalRotation.z + 0.6) - easedLower * 0.6;
+                        }
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateGesture);
+                        } else {
+                            arm.rotation.x = originalRotation.x;
+                            arm.rotation.z = originalRotation.z;
+                            this.finishGesture();
+                        }
+                    };
+                    
+                    animateGesture();
+                };
+
+                this.performWaveGesture = (arm) => {
+                    if (!arm) return this.finishGesture();
+                    
+                    const originalRotation = { x: arm.rotation.x, y: arm.rotation.y, z: arm.rotation.z };
+                    const gestureDuration = 3000;
+                    const startTime = Date.now();
+                    
+                    const animateGesture = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / gestureDuration, 1);
+                        
+                        if (progress < 0.2) {
+                            // Levantar braço
+                            const raiseProgress = progress / 0.2;
+                            arm.rotation.x = originalRotation.x - raiseProgress * 1.2;
+                            arm.rotation.z = originalRotation.z + raiseProgress * 0.8;
+                        } else if (progress < 0.8) {
+                            // Acenar (movimento de vai-e-vem)
+                            const wavePhase = (progress - 0.2) / 0.6;
+                            const waveMotion = Math.sin(wavePhase * Math.PI * 6) * 0.4;
+                            arm.rotation.x = originalRotation.x - 1.2;
+                            arm.rotation.z = originalRotation.z + 0.8 + waveMotion;
+                        } else {
+                            // Baixar braço
+                            const lowerProgress = (progress - 0.8) / 0.2;
+                            const easedLower = 1 - Math.pow(1 - lowerProgress, 3);
+                            arm.rotation.x = (originalRotation.x - 1.2) + easedLower * 1.2;
+                            arm.rotation.z = (originalRotation.z + 0.8) - easedLower * 0.8;
+                        }
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateGesture);
+                        } else {
+                            arm.rotation.x = originalRotation.x;
+                            arm.rotation.z = originalRotation.z;
+                            this.finishGesture();
+                        }
+                    };
+                    
+                    animateGesture();
+                };
+
+                this.performWelcomeGesture = (leftArm, rightArm) => {
+                    if (!leftArm || !rightArm) return this.finishGesture();
+                    
+                    const originalLeft = { x: leftArm.rotation.x, z: leftArm.rotation.z };
+                    const originalRight = { x: rightArm.rotation.x, z: rightArm.rotation.z };
+                    const gestureDuration = 4000;
+                    const startTime = Date.now();
+                    
+                    const animateGesture = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / gestureDuration, 1);
+                        
+                        if (progress < 0.3) {
+                            // Abrir braços
+                            const openProgress = progress / 0.3;
+                            leftArm.rotation.x = originalLeft.x - openProgress * 0.8;
+                            leftArm.rotation.z = originalLeft.z - openProgress * 0.6;
+                            rightArm.rotation.x = originalRight.x - openProgress * 0.8;
+                            rightArm.rotation.z = originalRight.z + openProgress * 0.6;
+                        } else if (progress < 0.7) {
+                            // Manter posição aberta
+                            leftArm.rotation.x = originalLeft.x - 0.8;
+                            leftArm.rotation.z = originalLeft.z - 0.6;
+                            rightArm.rotation.x = originalRight.x - 0.8;
+                            rightArm.rotation.z = originalRight.z + 0.6;
+                        } else {
+                            // Fechar braços
+                            const closeProgress = (progress - 0.7) / 0.3;
+                            const easedClose = 1 - Math.pow(1 - closeProgress, 3);
+                            leftArm.rotation.x = (originalLeft.x - 0.8) + easedClose * 0.8;
+                            leftArm.rotation.z = (originalLeft.z - 0.6) + easedClose * 0.6;
+                            rightArm.rotation.x = (originalRight.x - 0.8) + easedClose * 0.8;
+                            rightArm.rotation.z = (originalRight.z + 0.6) - easedClose * 0.6;
+                        }
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateGesture);
+                        } else {
+                            leftArm.rotation.x = originalLeft.x;
+                            leftArm.rotation.z = originalLeft.z;
+                            rightArm.rotation.x = originalRight.x;
+                            rightArm.rotation.z = originalRight.z;
+                            this.finishGesture();
+                        }
+                    };
+                    
+                    animateGesture();
+                };
+
+                this.performExplainGesture = (leftArm, rightArm, head) => {
+                    if (!leftArm || !rightArm) return this.finishGesture();
+                    
+                    const originalLeft = { x: leftArm.rotation.x, z: leftArm.rotation.z };
+                    const originalRight = { x: rightArm.rotation.x, z: rightArm.rotation.z };
+                    const originalHead = head ? { y: head.rotation.y } : null;
+                    const gestureDuration = 5000;
+                    const startTime = Date.now();
+                    
+                    const animateGesture = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / gestureDuration, 1);
+                        const time = elapsed * 0.001;
+                        
+                        // Gestos alternados das mãos como se explicando
+                        const leftPhase = Math.sin(time * 2) * 0.4;
+                        const rightPhase = Math.sin(time * 2 + Math.PI) * 0.3;
+                        
+                        leftArm.rotation.x = originalLeft.x - 0.6 + leftPhase;
+                        leftArm.rotation.z = originalLeft.z - 0.3 + Math.abs(leftPhase) * 0.2;
+                        
+                        rightArm.rotation.x = originalRight.x - 0.5 + rightPhase;
+                        rightArm.rotation.z = originalRight.z + 0.3 + Math.abs(rightPhase) * 0.2;
+                        
+                        // Cabeça acompanha a explicação
+                        if (head && originalHead) {
+                            head.rotation.y = originalHead.y + Math.sin(time * 0.8) * 0.2;
+                        }
+                        
+                        if (progress >= 1) {
+                            leftArm.rotation.x = originalLeft.x;
+                            leftArm.rotation.z = originalLeft.z;
+                            rightArm.rotation.x = originalRight.x;
+                            rightArm.rotation.z = originalRight.z;
+                            if (head && originalHead) {
+                                head.rotation.y = originalHead.y;
+                            }
+                            this.finishGesture();
+                        } else {
+                            requestAnimationFrame(animateGesture);
+                        }
+                    };
+                    
+                    animateGesture();
+                };
+
+                this.performThinkGesture = (arm, head) => {
+                    if (!arm) return this.finishGesture();
+                    
+                    const originalArm = { x: arm.rotation.x, z: arm.rotation.z };
+                    const originalHead = head ? { x: head.rotation.x, y: head.rotation.y } : null;
+                    const gestureDuration = 3500;
+                    const startTime = Date.now();
+                    
+                    const animateGesture = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / gestureDuration, 1);
+                        
+                        if (progress < 0.3) {
+                            // Levar mão ao queixo
+                            const moveProgress = progress / 0.3;
+                            arm.rotation.x = originalArm.x - moveProgress * 1.5;
+                            arm.rotation.z = originalArm.z + moveProgress * 0.4;
+                            
+                            if (head && originalHead) {
+                                head.rotation.x = originalHead.x + moveProgress * 0.2; // Olhar ligeiramente para baixo
+                            }
+                        } else if (progress < 0.7) {
+                            // Manter posição pensativa
+                            arm.rotation.x = originalArm.x - 1.5;
+                            arm.rotation.z = originalArm.z + 0.4;
+                            
+                            if (head && originalHead) {
+                                head.rotation.x = originalHead.x + 0.2;
+                                // Pequenos movimentos de reflexão
+                                head.rotation.y = originalHead.y + Math.sin((progress - 0.3) * 30) * 0.05;
+                            }
+                        } else {
+                            // Voltar à posição normal
+                            const returnProgress = (progress - 0.7) / 0.3;
+                            const easedReturn = 1 - Math.pow(1 - returnProgress, 3);
+                            
+                            arm.rotation.x = (originalArm.x - 1.5) + easedReturn * 1.5;
+                            arm.rotation.z = (originalArm.z + 0.4) - easedReturn * 0.4;
+                            
+                            if (head && originalHead) {
+                                head.rotation.x = (originalHead.x + 0.2) - easedReturn * 0.2;
+                                head.rotation.y = originalHead.y;
+                            }
+                        }
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateGesture);
+                        } else {
+                            arm.rotation.x = originalArm.x;
+                            arm.rotation.z = originalArm.z;
+                            if (head && originalHead) {
+                                head.rotation.x = originalHead.x;
+                                head.rotation.y = originalHead.y;
+                            }
+                            this.finishGesture();
+                        }
+                    };
+                    
+                    animateGesture();
+                };
+
+                this.performEncourageGesture = (leftArm, rightArm) => {
+                    if (!leftArm || !rightArm) return this.finishGesture();
+                    
+                    const originalLeft = { x: leftArm.rotation.x, z: leftArm.rotation.z };
+                    const originalRight = { x: rightArm.rotation.x, z: rightArm.rotation.z };
+                    const gestureDuration = 2500;
+                    const startTime = Date.now();
+                    
+                    const animateGesture = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / gestureDuration, 1);
+                        
+                        if (progress < 0.4) {
+                            // Levantar punhos (gesto de comemoração)
+                            const raiseProgress = progress / 0.4;
+                            leftArm.rotation.x = originalLeft.x - raiseProgress * 1.4;
+                            leftArm.rotation.z = originalLeft.z - raiseProgress * 0.3;
+                            rightArm.rotation.x = originalRight.x - raiseProgress * 1.4;
+                            rightArm.rotation.z = originalRight.z + raiseProgress * 0.3;
+                        } else if (progress < 0.7) {
+                            // Pequenos pumps de encorajamento
+                            const pumpPhase = (progress - 0.4) / 0.3;
+                            const pumpMotion = Math.sin(pumpPhase * Math.PI * 6) * 0.1;
+                            
+                            leftArm.rotation.x = originalLeft.x - 1.4 + pumpMotion;
+                            leftArm.rotation.z = originalLeft.z - 0.3;
+                            rightArm.rotation.x = originalRight.x - 1.4 + pumpMotion;
+                            rightArm.rotation.z = originalRight.z + 0.3;
+                        } else {
+                            // Baixar braços
+                            const lowerProgress = (progress - 0.7) / 0.3;
+                            const easedLower = 1 - Math.pow(1 - lowerProgress, 3);
+                            
+                            leftArm.rotation.x = (originalLeft.x - 1.4) + easedLower * 1.4;
+                            leftArm.rotation.z = (originalLeft.z - 0.3) + easedLower * 0.3;
+                            rightArm.rotation.x = (originalRight.x - 1.4) + easedLower * 1.4;
+                            rightArm.rotation.z = (originalRight.z + 0.3) - easedLower * 0.3;
+                        }
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateGesture);
+                        } else {
+                            leftArm.rotation.x = originalLeft.x;
+                            leftArm.rotation.z = originalLeft.z;
+                            rightArm.rotation.x = originalRight.x;
+                            rightArm.rotation.z = originalRight.z;
+                            this.finishGesture();
+                        }
+                    };
+                    
+                    animateGesture();
+                };
+
+                this.finishGesture = () => {
+                    AppState.drTuringAnimations.isGesturing = false;
+                };
+
                 // Iniciar animação idle
                 startIdleAnimation();
+                
+                console.log('Sistema de animações humanizadas configurado para Dra. Turing');
             },
 
             setupDrTuringSpeech3D(model) {
@@ -955,58 +1486,183 @@
                 // Criar um placeholder humanóide mais realista se o modelo 3D falhar ao carregar
                 const group = new THREE.Group();
                 
+                // Criar estrutura hierárquica para animações mais naturais
+                const torso = new THREE.Group();
+                const head = new THREE.Group();
+                const leftArm = new THREE.Group();
+                const rightArm = new THREE.Group();
+                const leftLeg = new THREE.Group();
+                const rightLeg = new THREE.Group();
+                
                 // Corpo principal (tronco)
                 const bodyGeometry = new THREE.CapsuleGeometry(0.6, 2, 8, 16);
                 const bodyMaterial = new THREE.MeshPhongMaterial({
                     color: 0xf8f8ff, // Jaleco branco
                     transparent: false,
-                    opacity: 1.0
+                    opacity: 1.0,
+                    shininess: 30
                 });
                 const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
                 body.position.y = 1;
                 body.castShadow = true;
-                group.add(body);
+                torso.add(body);
                 
-                // Cabeça
+                // Cabeça com formato mais realista
                 const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
                 const headMaterial = new THREE.MeshPhongMaterial({
                     color: 0xffdbac, // Cor de pele realista
                     transparent: false,
-                    opacity: 1.0
+                    opacity: 1.0,
+                    shininess: 20
                 });
-                const head = new THREE.Mesh(headGeometry, headMaterial);
-                head.position.y = 2.5;
-                head.castShadow = true;
-                group.add(head);
+                const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+                headMesh.position.y = 1.5; // Relativo ao torso
+                headMesh.castShadow = true;
+                head.add(headMesh);
                 
-                // Cabelo
+                // Cabelo mais detalhado
                 const hairGeometry = new THREE.SphereGeometry(0.42, 16, 16);
                 const hairMaterial = new THREE.MeshPhongMaterial({
                     color: 0x2d1b0e, // Castanho escuro
                     transparent: false,
-                    opacity: 1.0
+                    opacity: 1.0,
+                    shininess: 80
                 });
                 const hair = new THREE.Mesh(hairGeometry, hairMaterial);
-                hair.position.y = 2.6;
+                hair.position.y = 1.6;
                 hair.scale.set(1, 0.8, 1);
                 hair.castShadow = true;
-                group.add(hair);
+                head.add(hair);
                 
-                // Olhos
+                // Olhos expressivos
                 const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
                 const eyeMaterial = new THREE.MeshPhongMaterial({
                     color: 0x4a90e2,
                     emissive: 0x001122,
-                    emissiveIntensity: 0.2
+                    emissiveIntensity: 0.2,
+                    shininess: 100
                 });
                 
                 const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-                leftEye.position.set(-0.15, 2.55, 0.35);
-                group.add(leftEye);
+                leftEye.position.set(-0.15, 1.55, 0.35);
+                leftEye.name = 'leftEye';
+                head.add(leftEye);
                 
                 const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-                rightEye.position.set(0.15, 2.55, 0.35);
-                group.add(rightEye);
+                rightEye.position.set(0.15, 1.55, 0.35);
+                rightEye.name = 'rightEye';
+                head.add(rightEye);
+                
+                // Nariz sutil
+                const noseGeometry = new THREE.ConeGeometry(0.03, 0.1, 6);
+                const noseMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xffdbac,
+                    shininess: 10
+                });
+                const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+                nose.position.set(0, 1.5, 0.38);
+                nose.rotation.x = Math.PI / 2;
+                head.add(nose);
+                
+                // Braços com articulações
+                const armGeometry = new THREE.CapsuleGeometry(0.15, 1.2, 8, 16);
+                const armMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xf8f8ff, // Jaleco
+                    shininess: 30
+                });
+                
+                // Braço esquerdo
+                const leftArmMesh = new THREE.Mesh(armGeometry, armMaterial);
+                leftArmMesh.position.set(0, -0.3, 0);
+                leftArmMesh.castShadow = true;
+                leftArm.add(leftArmMesh);
+                leftArm.position.set(-0.8, 1.5, 0);
+                
+                // Braço direito
+                const rightArmMesh = new THREE.Mesh(armGeometry, armMaterial);
+                rightArmMesh.position.set(0, -0.3, 0);
+                rightArmMesh.castShadow = true;
+                rightArm.add(rightArmMesh);
+                rightArm.position.set(0.8, 1.5, 0);
+                
+                // Mãos
+                const handGeometry = new THREE.SphereGeometry(0.12, 8, 8);
+                const handMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xffdbac,
+                    shininess: 20
+                });
+                
+                const leftHand = new THREE.Mesh(handGeometry, handMaterial);
+                leftHand.position.set(0, -0.8, 0);
+                leftHand.castShadow = true;
+                leftArm.add(leftHand);
+                
+                const rightHand = new THREE.Mesh(handGeometry, handMaterial);
+                rightHand.position.set(0, -0.8, 0);
+                rightHand.castShadow = true;
+                rightArm.add(rightHand);
+                
+                // Pernas (mais simples)
+                const legGeometry = new THREE.CapsuleGeometry(0.2, 1.5, 8, 16);
+                const legMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x2c3e50, // Calça escura
+                    shininess: 10
+                });
+                
+                const leftLegMesh = new THREE.Mesh(legGeometry, legMaterial);
+                leftLegMesh.position.set(0, -0.75, 0);
+                leftLegMesh.castShadow = true;
+                leftLeg.add(leftLegMesh);
+                leftLeg.position.set(-0.3, 0.25, 0);
+                
+                const rightLegMesh = new THREE.Mesh(legGeometry, legMaterial);
+                rightLegMesh.position.set(0, -0.75, 0);
+                rightLegMesh.castShadow = true;
+                rightLeg.add(rightLegMesh);
+                rightLeg.position.set(0.3, 0.25, 0);
+                
+                // Sapatos
+                const shoeGeometry = new THREE.BoxGeometry(0.3, 0.1, 0.4);
+                const shoeMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x000000,
+                    shininess: 50
+                });
+                
+                const leftShoe = new THREE.Mesh(shoeGeometry, shoeMaterial);
+                leftShoe.position.set(0, -1.45, 0.1);
+                leftShoe.castShadow = true;
+                leftLeg.add(leftShoe);
+                
+                const rightShoe = new THREE.Mesh(shoeGeometry, shoeMaterial);
+                rightShoe.position.set(0, -1.45, 0.1);
+                rightShoe.castShadow = true;
+                rightLeg.add(rightShoe);
+                
+                // Montar hierarquia
+                torso.position.y = 0;
+                head.position.y = 2;
+                
+                group.add(torso);
+                group.add(head);
+                group.add(leftArm);
+                group.add(rightArm);
+                group.add(leftLeg);
+                group.add(rightLeg);
+                
+                // Adicionar nomes para animação
+                torso.name = 'spine';
+                head.name = 'head';
+                leftArm.name = 'left_arm';
+                rightArm.name = 'right_arm';
+                leftLeg.name = 'left_leg';
+                rightLeg.name = 'right_leg';
+                
+                // Criar grupo de olhos para piscar
+                const eyesGroup = new THREE.Group();
+                eyesGroup.add(leftEye);
+                eyesGroup.add(rightEye);
+                eyesGroup.name = 'eyes';
+                head.add(eyesGroup);
                 
                 // Posicionar na cena
                 group.position.set(-8, 0, 5);
@@ -1016,7 +1672,7 @@
                 AppState.scene.add(group);
                 AppState.drTuring = group;
                 
-                // Configurar animações
+                // Configurar animações com o novo sistema hierárquico
                 this.setupDrTuringAnimations(group);
                 this.setupDrTuringSpeech3D(group);
                 
@@ -1028,32 +1684,65 @@
                 turingLight.position.set(-8, 4, 5);
                 AppState.scene.add(turingLight);
                 
-                // Adicionar rótulo mais realista
+                // Criar rótulo mais elegante
+                this.createDrTuringLabel();
+                
+                // Animar entrada suave
+                this.animatePlaceholderEntrance(group);
+                
+                // Mostrar mensagem inicial
+                setTimeout(() => {
+                    this.drTuringSpeak3D('Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?');
+                }, 2000);
+                
+                console.log('Placeholder humanizado da Dra. Turing criado com sucesso');
+            },
+
+            createDrTuringLabel() {
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 canvas.width = 512;
                 canvas.height = 128;
                 
-                // Fundo elegante
+                // Fundo elegante com gradiente
                 const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
                 gradient.addColorStop(0, 'rgba(248, 248, 255, 0.95)');
+                gradient.addColorStop(0.5, 'rgba(138, 200, 255, 0.95)');
                 gradient.addColorStop(1, 'rgba(0, 200, 255, 0.95)');
                 context.fillStyle = gradient;
                 context.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Borda
+                // Borda holográfica
                 context.strokeStyle = '#00ff88';
                 context.lineWidth = 6;
                 context.strokeRect(0, 0, canvas.width, canvas.height);
                 
-                // Texto
+                // Adicionais visuais
+                context.strokeStyle = '#ffffff';
+                context.lineWidth = 2;
+                context.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+                
+                // Texto com sombra
+                context.shadowColor = '#000';
+                context.shadowBlur = 4;
+                context.shadowOffsetX = 2;
+                context.shadowOffsetY = 2;
+                
+                // Nome principal
                 context.fillStyle = '#000';
                 context.font = 'bold 36px Arial';
                 context.textAlign = 'center';
                 context.fillText('Dra. Ana Turing', canvas.width / 2, 50);
-                context.font = '24px Arial';
-                context.fillText('Mentora Virtual', canvas.width / 2, 85);
                 
+                // Título profissional
+                context.font = 'bold 24px Arial';
+                context.fillText('Mentora Virtual IA', canvas.width / 2, 85);
+                
+                // Ícone de IA
+                context.font = '30px Arial';
+                context.fillText('🤖', 50, 45);
+                context.fillText('💡', canvas.width - 50, 45);
+
                 const texture = new THREE.CanvasTexture(canvas);
                 const spriteMaterial = new THREE.SpriteMaterial({ 
                     map: texture,
@@ -1062,13 +1751,114 @@
                 const sprite = new THREE.Sprite(spriteMaterial);
                 sprite.position.set(-8, 7, 5);
                 sprite.scale.set(6, 1.5, 1);
+                sprite.name = 'dr-turing-label';
                 
                 AppState.scene.add(sprite);
+            },
+
+            animatePlaceholderEntrance(group) {
+                // Animação de entrada dramática
+                group.position.y = -10; // Começar enterrado
+                group.scale.set(0.1, 0.1, 0.1); // Muito pequeno
+                group.rotation.y = Math.PI * 2; // Rotação completa
                 
-                // Mostrar mensagem inicial
-                setTimeout(() => {
-                    this.drTuringSpeak3D('Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?');
-                }, 2000);
+                const targetY = 0;
+                const targetScale = 2.5;
+                const targetRotation = Math.PI / 4;
+                
+                const startTime = Date.now();
+                const duration = 2000;
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing dramático
+                    const easedProgress = 1 - Math.pow(1 - progress, 4);
+                    
+                    // Posição Y com bounce
+                    const bounceProgress = this.easeOutBounce(progress);
+                    group.position.y = -10 + (targetY + 10) * bounceProgress;
+                    
+                    // Escala com elastic
+                    const elasticProgress = this.easeOutElastic(progress);
+                    const scale = 0.1 + (targetScale - 0.1) * elasticProgress;
+                    group.scale.set(scale, scale, scale);
+                    
+                    // Rotação suave
+                    group.rotation.y = Math.PI * 2 * (1 - easedProgress) + targetRotation * easedProgress;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // Adicionar pequena animação idle final
+                        this.addFinalIdleAnimation(group);
+                    }
+                };
+                
+                animate();
+            },
+
+            addFinalIdleAnimation(group) {
+                // Pequena animação de "I'm alive!" após entrada
+                let bounceCount = 0;
+                const maxBounces = 3;
+                const bounceHeight = 0.3;
+                
+                const finalBounce = () => {
+                    if (bounceCount >= maxBounces) return;
+                    
+                    const startY = group.position.y;
+                    const startTime = Date.now();
+                    const bounceDuration = 400;
+                    
+                    const animateBounce = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = elapsed / bounceDuration;
+                        
+                        if (progress < 0.5) {
+                            // Subir
+                            group.position.y = startY + (progress * 2) * bounceHeight;
+                        } else {
+                            // Descer
+                            group.position.y = startY + ((1 - progress) * 2) * bounceHeight;
+                        }
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animateBounce);
+                        } else {
+                            group.position.y = startY;
+                            bounceCount++;
+                            if (bounceCount < maxBounces) {
+                                setTimeout(finalBounce, 200);
+                            }
+                        }
+                    };
+                    
+                    animateBounce();
+                };
+                
+                setTimeout(finalBounce, 500);
+            },
+
+            easeOutBounce(t) {
+                if (t < 1/2.75) {
+                    return 7.5625 * t * t;
+                } else if (t < 2/2.75) {
+                    return 7.5625 * (t -= 1.5/2.75) * t + 0.75;
+                } else if (t < 2.5/2.75) {
+                    return 7.5625 * (t -= 2.25/2.75) * t + 0.9375;
+                } else {
+                    return 7.5625 * (t -= 2.625/2.75) * t + 0.984375;
+                }
+            },
+
+            easeOutElastic(t) {
+                if (t === 0) return 0;
+                if (t === 1) return 1;
+                const p = 0.3;
+                const s = p / 4;
+                return Math.pow(2, -10 * t) * Math.sin((t - s) * (2 * Math.PI) / p) + 1;
             },
 
             createLaboratoryPlatform() {
@@ -2124,6 +2914,72 @@ dashboard-cardiaco/<br>
                 
                 // Feedback sonoro visual (pulso de luz)
                 this.createClickFeedback(clickedObject);
+
+                // Reações contextuais da Dra. Turing
+                this.drTuringReactToClick(info.name);
+            },
+
+            drTuringReactToClick(itemName) {
+                // Reações específicas da Dra. Turing baseadas no item clicado
+                const reactions = {
+                    'app/': {
+                        message: 'Excelente escolha! A pasta app/ é o coração da nossa aplicação. É aqui que organizamos toda a lógica do dashboard.',
+                        gesture: 'explain'
+                    },
+                    'data/': {
+                        message: 'Perfeito! Os dados são a alma de qualquer análise. Aqui ficará nosso dataset de doenças cardíacas.',
+                        gesture: 'point'
+                    },
+                    'main.py': {
+                        message: 'Muito bem! O main.py é nosso ponto de partida. É aqui que tudo começa quando executamos o dashboard.',
+                        gesture: 'encourage'
+                    },
+                    'pyproject.toml': {
+                        message: 'Ótima observação! O pyproject.toml é o arquivo de configuração moderno do Python. Muito mais elegante que o requirements.txt!',
+                        gesture: 'think'
+                    },
+                    'utils/': {
+                        message: 'Inteligente! As funções utilitárias tornam nosso código mais limpo e reutilizável.',
+                        gesture: 'wave'
+                    },
+                    'tests/': {
+                        message: 'Fantástico! Os testes garantem a qualidade do nosso código. Um desenvolvedor profissional sempre pensa em testes!',
+                        gesture: 'encourage'
+                    }
+                };
+
+                const reaction = reactions[itemName];
+                if (reaction) {
+                    // Fazer a Dra. Turing olhar para o item e reagir
+                    setTimeout(() => {
+                        this.drTuringSpeak3D(reaction.message, 6000);
+                        
+                        // Executar gesto contextual
+                        setTimeout(() => {
+                            if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                                AppState.drTuringAnimations.performGesture(reaction.gesture);
+                            }
+                        }, 1500);
+                    }, 500);
+                } else {
+                    // Reação genérica
+                    const genericReactions = [
+                        'Interessante! Você está explorando bem a arquitetura do projeto.',
+                        'Muito bem! Cada componente tem sua importância na construção do dashboard.',
+                        'Excelente curiosidade! Conhecer a estrutura é fundamental para o desenvolvimento.'
+                    ];
+                    
+                    const randomReaction = genericReactions[Math.floor(Math.random() * genericReactions.length)];
+                    setTimeout(() => {
+                        this.drTuringSpeak3D(randomReaction, 4000);
+                        
+                        setTimeout(() => {
+                            if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                                AppState.drTuringAnimations.performGesture('wave');
+                            }
+                        }, 1000);
+                    }, 500);
+                }
             },
 
             animateClickEffect(object) {
@@ -2487,18 +3343,43 @@ lint = "ruff check ."`
             drTuringPresentsProject() {
                 // Aguardar um momento antes da Dra. Turing falar sobre o projeto
                 setTimeout(() => {
-                    this.drTuringSpeak3D(`Excelente! Agora você pode ver a arquitetura 3D do nosso projeto. Cada bloco representa um componente essencial do dashboard que construiremos. Explore passando o mouse sobre os blocos e clique neles para descobrir sua função específica. Nossa missão é analisar fatores de risco de doenças cardíacas usando dados reais do Kaggle. Vamos começar?`, 8000);
+                    this.drTuringSpeak3D(`Excelente! Agora você pode ver a arquitetura 3D do nosso projeto. Cada bloco representa um componente essencial do dashboard que construiremos. Explore passando o mouse sobre os blocos e clique neles para descobrir sua função específica.`, 8000);
+                    
+                    // Gesto de apresentação
+                    setTimeout(() => {
+                        if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                            AppState.drTuringAnimations.performGesture('welcome');
+                        }
+                    }, 1000);
+                    
+                    setTimeout(() => {
+                        this.drTuringSpeak3D(`Nossa missão é analisar fatores de risco de doenças cardíacas usando dados reais do Kaggle. Vamos começar?`, 6000);
+                        
+                        // Gesto encorajador
+                        setTimeout(() => {
+                            if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                                AppState.drTuringAnimations.performGesture('encourage');
+                            }
+                        }, 2000);
+                    }, 9000);
                     
                     // Fazer a Dra. Turing apontar para o projeto (animação especial)
                     if (AppState.drTuringAnimations && AppState.drTuringAnimations.walkTo) {
                         setTimeout(() => {
                             // Caminhar para mais perto do projeto
                             AppState.drTuringAnimations.walkTo(-5, 2, 2000);
-                        }, 3000);
+                        }, 16000);
                         
                         setTimeout(() => {
                             this.drTuringSpeak3D(`Cada pasta e arquivo tem uma função específica. Clique nos elementos para aprender mais!`, 4000);
-                        }, 6000);
+                            
+                            // Gesto de apontar para o projeto
+                            setTimeout(() => {
+                                if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                                    AppState.drTuringAnimations.performGesture('point');
+                                }
+                            }, 1000);
+                        }, 18000);
                     }
                 }, 3000);
             },
