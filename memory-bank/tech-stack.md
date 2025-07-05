@@ -33,7 +33,7 @@ Tech Stack: Nexo Dash
 
     Main File: A single index.html file.
 
-    Python Execution Core: Pyodide will be used to run Python code (Dash, Pandas, etc.) directly in the user's browser via WebAssembly.
+    Python Execution Core: pycafe will be used to run Python code (Dash, Pandas, etc.) directly in the user's browser via WebAssembly.
 
     3D Rendering and Interface: three.js is the fundamental library for creating the entire visual experience of the virtual laboratory, including holographic panels and the visualization of the dashboard architecture.
 
@@ -119,5 +119,5 @@ uv run python main.py                                     # Executar aplicação
 ### Versões Específicas
 - **AutoTranslate.js**: v2.0.1
 - **dash-chart-editor**: v0.0.1a5
-- **Python**: Executado via Pyodide (WebAssembly)
+- **Python**: Executado via pycafe (WebAssembly)
 - **Gerenciador de Pacotes**: uv (Astral) - foco principal do ensino

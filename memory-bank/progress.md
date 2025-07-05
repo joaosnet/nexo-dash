@@ -16,20 +16,20 @@
 - [x] Especificações técnicas atualizadas
 
 ### ✅ Fase 1: Foundation e Estrutura do Ambiente (CONCLUÍDA)
-**Objetivo**: Criar o esqueleto da aplicação, configurar ambiente 3D básico e garantir que Pyodide funciona.
+**Objetivo**: Criar o esqueleto da aplicação, configurar ambiente 3D básico e garantir que pycafe funciona.
 
 #### Tarefas Completadas:
 - [x] Criar arquivo principal `index.html`
-- [x] Integrar bibliotecas principais (three.js, Pyodide, AutoTranslate.js 2.0.1)
+- [x] Integrar bibliotecas principais (three.js, pycafe, AutoTranslate.js 2.0.1)
 - [x] Configurar cena 3D básica
-- [x] Inicializar Pyodide com pacotes essenciais
+- [x] Inicializar pycafe com pacotes essenciais
 - [x] Implementar tela de loading "Carregando Laboratório..."
 
 #### Funcionalidades Implementadas:
 - **Arquivo único**: `index.html` com toda a aplicação integrada
 - **Ambiente 3D**: Cena three.js com plataforma holográfica e núcleo central animado
 - **Sistema de carregamento**: Tela de loading com progress bar e feedback visual
-- **Pyodide integrado**: Python executando no navegador com pacotes Dash pré-carregados
+- **pycafe integrado**: Python executando no navegador com pacotes Dash pré-carregados
 - **Interface holográfica**: Painéis translúcidos com efeitos visuais futuristas
 - **Sistema modular**: Estrutura preparada para módulos educacionais
 - **Responsividade**: Design adaptativo para desktop, tablet e mobile
@@ -167,11 +167,11 @@
 
 ### Bibliotecas JavaScript (CDN)
 - **three.js**: Última versão estável
-- **Pyodide**: Última versão estável
+- **pycafe**: Última versão estável
 - **AutoTranslate.js**: v2.0.1 (especificado)
 - **Monaco Editor** ou **Ace Editor**: Para edição de código
 
-### Pacotes Python (Pyodide)
+### Pacotes Python (pycafe)
 - **dash**: Framework principal
 - **dash-mantine-components**: Componentes modernos UI
 - **dash-chart-editor**: v0.0.1a5 (editor de gráficos)
@@ -190,7 +190,7 @@
    - Controles básicos de navegação
    - Loop de animação
 
-3. **Configurar Pyodide**
+3. **Configurar pycafe**
    - Inicialização assíncrona
    - Carregamento de pacotes essenciais
    - Interface de comunicação com JavaScript
@@ -209,7 +209,7 @@
 - **Internacionalização**: AutoTranslate.js 2.0.1 com detecção automática
 
 ### Considerações de Performance
-- Carregamento inicial do Pyodide pode ser lento (necessário feedback visual)
+- Carregamento inicial do pycafe pode ser lento (necessário feedback visual)
 - Otimizações three.js para dispositivos móveis
 - Cache de assets para melhor experiência
 

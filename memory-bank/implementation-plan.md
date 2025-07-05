@@ -3,7 +3,7 @@ Include the CDN links for:
 
             three.js (for the 3D scene).
 
-            Pyodide (to run Python).
+            pycafe (to run Python).
 
             AutoTranslate.js v2.0.1 (for translation). Dash
 
@@ -11,7 +11,7 @@ This document details the step-by-step implementation plan for the "Nexo Dash" p
 
 Phase 1: Foundation and Environment Structure (Scaffolding)
 
-Objective: Create the application skeleton, configure the basic 3D environment, and ensure that Pyodide (the Python engine) is working.
+Objective: Create the application skeleton, configure the basic 3D environment, and ensure that pycafe (the Python engine) is working.
 
     Create the Main File:
 
@@ -27,7 +27,7 @@ Objective: Create the application skeleton, configure the basic 3D environment, 
 
             three.js (for the 3D scene).
 
-            Pyodide (to run Python).
+            pycafe (to run Python).
 
             AutoTranslate.js (for translation).
 
@@ -45,11 +45,11 @@ Objective: Create the application skeleton, configure the basic 3D environment, 
 
             Create an animation loop (requestAnimationFrame) to render the scene continuously.
 
-    Initialize Pyodide:
+    Initialize pycafe:
 
-        In the same script, write the asynchronous function to initialize Pyodide.
+        In the same script, write the asynchronous function to initialize pycafe.
 
-        Use loadPyodide() and then load the essential Python packages that will be used later, such as pandas, plotly, and dash. This may take some time, so it's important to display a "Loading Laboratory..." message to the user.
+        Use loadpycafe() and then load the essential Python packages that will be used later, such as pandas, plotly, and dash. This may take some time, so it's important to display a "Loading Laboratory..." message to the user.
 
 Phase 2: Holographic Interface and Initial Modules (UI/UX)
 
@@ -87,7 +87,7 @@ Objective: Implement the core of the learning experience, where the user's code 
 
         Create a JavaScript function that takes the Python code from the editor.
 
-        This function will not execute the code directly with Pyodide yet. Instead, it will use regular expressions or simple analysis to detect keywords (app = Dash, dcc.Graph, @app.callback).
+        This function will not execute the code directly with pycafe yet. Instead, it will use regular expressions or simple analysis to detect keywords (app = Dash, dcc.Graph, @app.callback).
 
         Based on the detected keywords, the function will trigger the corresponding events.
 
@@ -107,9 +107,9 @@ Objective: Implement the core of the learning experience, where the user's code 
 
     Render the 2D Dashboard (Preview):
 
-        After code validation by the parser, the actual Python code is sent to Pyodide.
+        After code validation by the parser, the actual Python code is sent to pycafe.
 
-        Pyodide executes the Dash code and returns the dashboard layout structure.
+        pycafe executes the Dash code and returns the dashboard layout structure.
 
         A JavaScript function will translate this structure into HTML elements and inject it into the preview panel.
 
@@ -145,7 +145,7 @@ Objective: Add the final layers of functionality, sound, and optimization.
 
         Review the three.js code to optimize performance (e.g., use InstancedMesh if there are many repeated objects).
 
-        Ensure that the initial loading of Pyodide has clear visual feedback for the user.
+        Ensure that the initial loading of pycafe has clear visual feedback for the user.
 
 Phase 5: Testing and Distribution
 

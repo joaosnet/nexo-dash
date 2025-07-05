@@ -302,8 +302,8 @@ showNotification(msg, type)    // Mostra notificação
 - **Materiais**: MeshLambertMaterial com efeitos holográficos
 - **Animações**: RequestAnimationFrame loop com tweening
 
-### 2. Sistema de Execução Python (Pyodide)
-- **Inicialização**: loadPyodide() assíncrono
+### 2. Sistema de Execução Python (pycafe)
+- **Inicialização**: loadpycafe() assíncrono
 - **Pacotes**: pandas, plotly, dash pré-carregados
 - **Executor**: Interpretação de código Python em tempo real
 - **Interface**: Comunicação bidirecional JavaScript ↔ Python
@@ -386,12 +386,12 @@ uv run python main.py                                     # Executar aplicação
 
 ### 1. Inicialização
 ```
-index.html → three.js → Pyodide → AutoTranslate.js → Interface Pronta
+index.html → three.js → pycafe → AutoTranslate.js → Interface Pronta
 ```
 
 ### 2. Interação do Usuário
 ```
-Código Python → Parser JS → Pyodide → Dash Render → Preview 2D + Visualização 3D
+Código Python → Parser JS → pycafe → Dash Render → Preview 2D + Visualização 3D
 ```
 
 ### 3. Progressão do Módulo
@@ -407,7 +407,7 @@ Módulo Completo → Animação 3D → Atualização Estado → Próximo Módulo
 - **Renderização**: Frustum culling automático
 - **Texturas**: Compressão e cache
 
-### Otimizações Pyodide
+### Otimizações pycafe
 - **Carregamento**: Lazy loading de pacotes não essenciais
 - **Cache**: Service Worker para cache de bibliotecas
 - **Execução**: Throttling para evitar bloqueio da UI

@@ -22,7 +22,7 @@
 
 - 🎓 **Educational Game**: Learn through guided missions with Dr. Ana Turing
 - 🔬 **Virtual Laboratory**: Immersive 3D environment built with three.js
-- 🐍 **Browser-based Python**: Execute Python code directly in the browser using Pyodide
+- 🐍 **Browser-based Python**: Execute Python code directly in the browser using pycafe
 - 📊 **Real Dataset**: Work with actual heart disease data from Kaggle
 - 🌐 **Multi-language Support**: Automatic translation with AutoTranslate.js
 - 📱 **Responsive Design**: Works on desktop, tablet, and mobile devices
@@ -65,7 +65,7 @@ Nexo Dash is built as a **single HTML file** application with embedded technolog
 ### 🛠️ Core Technologies
 - **🌐 Frontend**: Single-page application (index.html)
 - **🎮 3D Engine**: three.js for virtual laboratory environment
-- **🐍 Python Runtime**: Pyodide (WebAssembly) for browser-based Python execution
+- **🐍 Python Runtime**: pycafe (WebAssembly) for browser-based Python execution
 - **🎨 UI Framework**: HTML/CSS/JavaScript overlays on 3D scene
 - **🌍 Internationalization**: AutoTranslate.js v2.0.1 with SeamlessM4T
 

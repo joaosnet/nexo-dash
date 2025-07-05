@@ -31,7 +31,7 @@ Nexo Dash is an educational web-based simulation game built around teaching Pyth
 ### Frontend (Single-page Application)
 - **Main File**: `index.html` - Single HTML file containing entire application
 - **3D Engine**: three.js - Laboratory virtual environment and 3D architecture visualization
-- **Python Runtime**: Pyodide - WebAssembly-based Python execution in browser
+- **Python Runtime**: pycafe - WebAssembly-based Python execution in browser
 - **UI Components**: HTML/CSS/JavaScript overlays on 3D scene
 - **Internationalization**: AutoTranslate.js with SeamlessM4T model
 
@@ -89,7 +89,7 @@ project_name/
 - **Accessibility**: Multi-language support with AutoTranslate.js
 
 ## Development Notes
-- No traditional backend - Python runs in browser via Pyodide
+- No traditional backend - Python runs in browser via pycafe
 - Focus on teaching industry-standard Python tooling (uv, VS Code)
 - Emphasize professional project structure and best practices
 - 3D visualizations should reflect code architecture being built
