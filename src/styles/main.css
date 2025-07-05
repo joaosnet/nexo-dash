@@ -1,0 +1,403 @@
+/* Nexo Dash - Estilos Principais */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000;
+    overflow: hidden;
+    height: 100vh;
+    position: relative;
+}
+
+/* Canvas 3D que ocupará toda a tela */
+#threejs-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Tela de carregamento */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #0f0f23 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    color: #00ff88;
+    text-align: center;
+}
+
+.loading-logo {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 20px #00ff88;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-text {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0.8;
+}
+
+.loading-progress {
+    width: 300px;
+    height: 4px;
+    background: rgba(0, 255, 136, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.loading-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff88, #00ccff);
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px #00ff88;
+}
+
+.loading-status {
+    font-size: 1rem;
+    opacity: 0.6;
+    min-height: 1.5rem;
+}
+
+.loading-percentage {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 1rem;
+    color: #00ccff;
+    text-shadow: 0 0 10px #00ccff;
+}
+
+.loading-tips {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-top: 2rem;
+    max-width: 400px;
+    text-align: center;
+    transition: opacity 0.3s ease;
+    font-style: italic;
+}
+
+/* Painéis holográficos (estilo original do index.html) */
+.holographic-panel {
+    position: fixed;
+    background: rgba(0, 255, 136, 0.1);
+    border: 2px solid rgba(0, 255, 136, 0.3);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    color: #00ff88;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+    z-index: 100;
+    display: none;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.holographic-panel.visible {
+    display: block;
+    animation: slideInRight 0.5s ease-out;
+}
+
+.panel-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-align: center;
+    text-shadow: 0 0 10px #00ff88;
+}
+
+.panel-content {
+    margin-bottom: 1.5rem;
+}
+
+.panel-actions {
+    text-align: center;
+}
+
+.holographic-button {
+    background: rgba(0, 255, 136, 0.2);
+    border: 2px solid #00ff88;
+    color: #00ff88;
+    padding: 0.8rem 2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    margin: 0.5rem;
+}
+
+.holographic-button:hover {
+    background: rgba(0, 255, 136, 0.4);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    transform: translateY(-2px);
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+    .holographic-panel {
+        max-width: 500px;
+        right: 15px;
+        font-size: 1rem;
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .loading-logo {
+        font-size: 2rem;
+    }
+    
+    .loading-text {
+        font-size: 1.2rem;
+    }
+    
+    .loading-progress {
+        width: 250px;
+    }
+    
+    .holographic-panel {
+        left: 10px;
+        right: 10px;
+        top: 20px;
+        bottom: 20px;
+        max-width: none;
+        max-height: none;
+        padding: 1.5rem;
+        font-size: 1rem;
+        transform: none;
+        overflow-y: auto;
+    }
+    
+    .panel-title {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .loading-logo {
+        font-size: 1.5rem;
+    }
+    
+    .loading-text {
+        font-size: 1rem;
+    }
+    
+    .loading-progress {
+        width: 200px;
+    }
+    
+    .holographic-panel {
+        padding: 1rem;
+        font-size: 0.9rem;
+        left: 5px;
+        right: 5px;
+        top: 10px;
+        bottom: 10px;
+    }
+    
+    .panel-title {
+        font-size: 1.3rem;
+    }
+    
+    .holographic-button {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+        margin: 0.3rem;
+    }
+}
+
+/* Animações */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 20px #00ff88; }
+    50% { text-shadow: 0 0 30px #00ff88, 0 0 40px #00ccff; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+    from { 
+        opacity: 0; 
+        transform: translateX(100px) translateY(-50%); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateX(0) translateY(-50%); 
+    }
+}
+
+.glow-animation {
+    animation: glow 3s ease-in-out infinite;
+}
+
+.holographic-panel {
+    animation: slideInRight 0.5s ease-out;
+}
+
+/* Estilos para código */
+.code-block {
+    background: #1a1a1a;
+    padding: 1rem;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    margin: 1rem 0;
+    border-left: 4px solid #00ff88;
+    overflow-x: auto;
+}
+
+.code-block code {
+    color: #00ff88;
+}
+
+/* Estilos para links */
+.holographic-panel a {
+    color: #00ccff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.holographic-panel a:hover {
+    color: #00ff88;
+    text-shadow: 0 0 10px #00ff88;
+}
+
+/* Badges de status */
+.status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    background: rgba(0, 255, 136, 0.2);
+    border: 1px solid #00ff88;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    margin: 0.2rem;
+}
+
+/* Listas estilizadas */
+.holographic-panel ul {
+    padding-left: 1.5rem;
+}
+
+.holographic-panel li {
+    margin-bottom: 0.5rem;
+    position: relative;
+}
+
+.holographic-panel li::marker {
+    color: #00ff88;
+}
+
+/* Destacar elementos importantes */
+.highlight-box {
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}
+
+/* Scroll customizado para o painel */
+.holographic-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.holographic-panel::-webkit-scrollbar-track {
+    background: rgba(0, 255, 136, 0.1);
+    border-radius: 4px;
+}
+
+.holographic-panel::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 136, 0.5);
+    border-radius: 4px;
+}
+
+.holographic-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 136, 0.7);
+}
+
+/* Numeração de passos */
+.step-number {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    background: #00ff88;
+    color: #000;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+/* Notificações */
+.notification {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: rgba(0, 255, 136, 0.9);
+    color: #000;
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    font-weight: bold;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.notification.visible {
+    transform: translateX(0);
+}
+
+.notification.error {
+    background: rgba(255, 71, 87, 0.9);
+    color: #fff;
+}
+
+.notification.warning {
+    background: rgba(255, 165, 2, 0.9);
+    color: #000;
+}
+
+.notification.success {
+    background: rgba(0, 255, 136, 0.9);
+    color: #000;
+}
+
+.notification.info {
+    background: rgba(0, 200, 255, 0.9);
+    color: #000;
+}

@@ -53,7 +53,7 @@ The experience is continuous within the three.js environment:
 
         Adding Dependencies: The student will use the command uv add dash dash-mantine-components dash-chart-editor pandas to add the essential libraries. The simulation will visually show these dependencies being added to pyproject.toml.
 
-        Project Execution: Finally, Dr. Turing will teach the standard command to execute the project: uv run python main.py, explaining how uv manages the virtual environment transparently.
+        Project Execution: Finally, Dr. Turing will teach the standard command to execute the project: uv run python main.py, explaining how uv manages dependencies transparently.
 
     3D Interaction: Upon confirming the completion of each step, a subtle animation occurs in the background of the scene, such as a beam of light that stabilizes, showing that the "Workstation" is being calibrated and successfully synchronized.
 

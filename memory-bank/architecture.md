@@ -2,43 +2,65 @@
 
 ## Visão Geral Técnica
 
-O Nexo Dash é uma aplicação web educacional de arquivo único (single HTML file) que combina um ambiente de laboratório virtual 3D com execução de Python no navegador para ensinar desenvolvimento Dash de forma imersiva.
+O Nexo Dash é uma aplicação web educacional que combina um ambiente de laboratório 3D com execução de Python no navegador para ensinar desenvolvimento Dash de forma imersiva. A aplicação utiliza uma arquitetura orientada a objetos escalável e manutenível.
 
 ## Stack Tecnológico Principal
 
-### Frontend (Aplicação de Página Única)
-- **Arquivo Principal**: `index.html` - Aplicação completa em arquivo HTML único
-- **Engine 3D**: three.js - Ambiente virtual de laboratório e visualização 3D da arquitetura
-- **Runtime Python**: Pyodide (WebAssembly) - Execução de Python no navegador
-- **Componentes UI**: Overlays HTML/CSS/JavaScript sobre cena 3D
-- **Internacionalização**: AutoTranslate.js 2.0.1 com modelo SeamlessM4T
-- **Editor de Código**: Monaco Editor ou Ace Editor (integrado no ambiente 3D)
+### Frontend
+- **Arquivo Principal**: `index.html` - Aplicação completa
+- **Engine 3D**: three.js r128 - Ambiente de laboratório 3D
+- **Arquitetura**: ES6 Modules com classes orientadas a objetos
+- **Componentes UI**: Sistema de painéis holográficos
+- **Padrões**: Dependency Injection, Observer Pattern, Factory Pattern
+
+### Sistemas
+- **NexoDashApp**: Coordenador principal da aplicação
+- **LoadingSystem**: Gerenciamento de carregamento e transições
+- **ThreeJSSystem**: Coordenação dos sistemas 3D
+- **UISystem**: Interface holográfica e notificações
+- **ModuleSystem**: Progressão educacional e conteúdo
+- **DrTuringManager**: Personagem 3D mentora (IA)
+- **EnvironmentManager**: Laboratório virtual e interações
 
 ### Stack Python (Baseado no Navegador)
 - **Framework**: Dash (ensinado através do jogo)
 - **Visualização**: Plotly Express
 - **Processamento de Dados**: Pandas
-- **Componentes UI**: dash-mantine-components (instancia React automaticamente)
-- **Editor de Gráficos**: dash-chart-editor v0.0.1a5 (substitui react-chart-editor)
+- **Componentes UI**: dash-mantine-components
+- **Editor de Gráficos**: dash-chart-editor
 
 ### Ferramentas de Desenvolvimento (Ensinadas no Jogo)
-- **Editor de Código**: VS Code (configuração ensinada no Módulo 0)
+- **Editor de Código**: VS Code (configuração ensinada no Módulo 1)
 - **Gerenciador de Pacotes**: uv (foco principal)
 - **Controle de Versão**: Git
-- **Linguagem**: Python
+- **Linguagem**: Python 3.11+
 
 ## Arquitetura do Sistema
 
-### Estrutura de Arquivos (Arquivo Único)
+### Estrutura de Arquivos
 ```
 nexo-dash/
-├── index.html           # Aplicação completa
-├── memory-bank/         # Documentação e especificações
-│   ├── architecture.md  # Este arquivo
-│   ├── game-design-document.md
-│   ├── implementation-plan.md
-│   ├── progress.md
-│   └── tech-stack.md
+├── index.html                  # Aplicação principal
+├── src/                       # Código fonte
+│   ├── core/
+│   │   └── NexoDashApp.js     # Aplicação principal (331 linhas)
+│   ├── systems/               # Sistemas principais
+│   │   ├── LoadingSystem.js   # Sistema de carregamento (149 linhas)
+│   │   ├── ThreeJSSystem.js   # Sistema 3D principal (280 linhas)
+│   │   ├── UISystem.js        # Interface holográfica (347 linhas)
+│   │   ├── ModuleSystem.js    # Sistema educacional (424 linhas)
+│   │   └── three/             # Subsistemas Three.js
+│   │       ├── DrTuringManager.js      # Personagem 3D (819 linhas)
+│   │       └── EnvironmentManager.js   # Ambiente de laboratório (950 linhas)
+│   ├── config/
+│   │   └── AppConfig.js       # Configurações centralizadas (580 linhas)
+│   ├── data/
+│   │   └── ModuleDefinitions.js # Definições curriculares (850 linhas)
+│   └── utils/
+│       └── TestSuite.js       # Suite de testes (400 linhas)
+├── assets/                    # Recursos 3D (inalterado)
+├── examples/                  # Exemplos Three.js (inalterado)
+├── memory-bank/              # Documentação arquitetural
 └── .github/
     └── copilot-instructions.md
 ```
@@ -56,21 +78,223 @@ projeto_estudante/
 ├── utils/              # Funções utilitárias
 ├── tests/              # Testes automatizados
 ├── docs/               # Documentação
-├── instance/           # Configurações específicas do ambiente
-├── cache/              # Arquivos de cache
 ├── data/               # Dataset de doenças cardíacas
-├── criar_banco.py      # Script para criação de banco de dados
-├── Dockerfile          # Arquivo Docker para containerização
 ├── main.py             # Ponto de entrada da aplicação
-├── pyproject.toml      # Configuração do projeto (dependências, etc.)
-├── requirements.txt    # Dependências do projeto
-├── .gitignore          # Arquivos ignorados pelo Git
+├── pyproject.toml      # Configuração do projeto (uv)
 └── README.md           # Documentação inicial
+```
+
+## Padrões Arquiteturais Implementados
+
+### 1. Dependency Injection Pattern
+```javascript
+class SystemBase {
+    constructor(app) {
+        this.app = app;  // Dependência injetada
+        // Acesso a outros sistemas via this.app.getSystem('name')
+    }
+}
+```
+
+### 2. Observer Pattern
+```javascript
+// Sistemas comunicam via eventos
+app.emit('module:changed', { module: currentModule });
+uiSystem.on('panel:closed', () => this.updateState());
+```
+
+### 3. Factory Pattern
+```javascript
+// Criação dinâmica de painéis UI
+const panel = PanelFactory.create(type, config);
+uiSystem.registerPanel(panel);
+```
+
+### 4. Strategy Pattern
+```javascript
+// Diferentes estratégias para carregamento de modelos
+const loader = LoaderStrategy.getLoader(fileExtension);
+await loader.load(modelPath);
+```
+
+### 5. Singleton Pattern
+```javascript
+// Aplicação principal como singleton
+class NexoDashApp {
+    static instance = null;
+    static getInstance() {
+        if (!this.instance) {
+            this.instance = new NexoDashApp();
+        }
+        return this.instance;
+    }
+}
 ```
 
 ## Componentes da Aplicação
 
-### 1. Sistema de Renderização 3D (three.js)
+### 1. NexoDashApp (Core Application)
+**Responsabilidades:**
+- Coordenação de todos os sistemas
+- Gerenciamento do ciclo de vida da aplicação
+- Registry de sistemas
+- Event bus central
+
+**Principais Métodos:**
+```javascript
+registerSystem(name, system)    // Registra novo sistema
+getSystem(name)                 // Obtém sistema por nome
+initialize()                    // Inicializa aplicação
+dispose()                      // Limpa recursos
+```
+
+### 2. LoadingSystem
+**Responsabilidades:**
+- Controle da tela de carregamento
+- Feedback visual de progresso
+- Transições suaves entre estados
+
+**Interface Principal:**
+```javascript
+updateProgress(percentage, status)  // Atualiza progresso
+hide()                             // Oculta tela de loading
+show()                             // Mostra tela de loading
+```
+
+### 3. ThreeJSSystem
+**Responsabilidades:**
+- Inicialização do Three.js (scene, camera, renderer)
+- Coordenação de subsistemas 3D
+- Loop de animação principal
+- Gerenciamento de recursos 3D
+
+**Subsistemas:**
+- **DrTuringManager**: Personagem mentora 3D
+- **EnvironmentManager**: Laboratório virtual
+
+### 4. UISystem
+**Responsabilidades:**
+- Painéis holográficos
+- Sistema de notificações
+- Elementos de interface
+- Gerenciamento de eventos UI
+
+**Funcionalidades:**
+```javascript
+showPanel(config)              // Mostra painel configurado
+hidePanel(id)                  // Oculta painel específico
+createButton(config)           // Cria botão customizado
+showNotification(msg, type)    // Mostra notificação
+```
+
+### 5. ModuleSystem
+**Responsabilidades:**
+- Progressão educacional
+- Gerenciamento de conteúdo
+- Controle de módulos e passos
+- Processamento de ações
+
+**Principais Recursos:**
+- 8 módulos educacionais estruturados
+- Sistema de progressão linear
+- Ações contextuais por módulo
+- Integração com outros sistemas
+
+### 6. DrTuringManager (Subsistema 3D)
+**Responsabilidades:**
+- Carregamento de modelos 3D (FBX/GLB)
+- Sistema de animações
+- Balões de fala 3D
+- Interações contextuais
+
+**Recursos Avançados:**
+- Fallback automático entre formatos
+- Sistema de fala com timing
+- Animações contextuais
+- Iluminação dedicada
+
+### 7. EnvironmentManager (Subsistema 3D)
+**Responsabilidades:**
+- Criação do laboratório virtual
+- Blueprint 3D interativo
+- Sistema de partículas
+- Interações de mouse/touch
+
+**Elementos 3D:**
+- Plataforma holográfica
+- Modelos do laboratório (servidor, GPU, etc.)
+- Sistema de partículas ambientais
+- Estrutura 3D do projeto
+
+## Melhorias da Arquitetura
+
+### ✅ Benefícios Técnicos
+
+1. **Separação de Responsabilidades**
+   - Cada classe tem uma função específica
+   - Fácil localização de bugs
+   - Código mais legível e documentado
+
+2. **Manutenibilidade**
+   - Módulos independentes
+   - Fácil adição de novos recursos
+   - Testes isolados por sistema
+
+3. **Escalabilidade**
+   - Arquitetura plugin-based
+   - Novos sistemas facilmente integráveis
+   - Configuração centralizada
+
+4. **Reusabilidade**
+   - Sistemas podem ser reutilizados
+   - Padrões bem definidos
+   - Interfaces consistentes
+
+5. **Testabilidade**
+   - Suite de testes incluída
+   - Sistemas testáveis isoladamente
+   - Mocks e stubs facilitados
+
+### ✅ Padrões da Indústria
+
+1. **ES6 Modules**
+   - Import/export padrão
+   - Tree-shaking automático
+   - Compatibilidade moderna
+
+2. **Orientação a Objetos**
+   - Classes bem estruturadas
+   - Encapsulamento adequado
+   - Herança quando apropriada
+
+3. **Error Handling**
+   - Try/catch em operações críticas
+   - Fallbacks robustos
+   - Logs estruturados
+
+4. **Resource Management**
+   - Limpeza automática de recursos
+   - Prevenção de memory leaks
+   - Dispose patterns
+
+### ✅ Performance
+
+1. **Lazy Loading**
+   - Sistemas carregados sob demanda
+   - Modelos 3D com cache
+   - Recursos otimizados
+
+2. **Event-Driven**
+   - Comunicação assíncrona
+   - Desacoplamento de sistemas
+   - Performance otimizada
+
+3. **Memory Management**
+   - Limpeza automática
+   - Pools de objetos
+   - Garbage collection otimizada
+
+## Sistema de Renderização 3D (three.js)
 - **Scene**: Ambiente do laboratório virtual
 - **Camera**: PerspectiveCamera com OrbitControls
 - **Lighting**: AmbientLight + DirectionalLight

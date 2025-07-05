@@ -194,7 +194,7 @@ Objective: Ensure that the application works correctly in different environments
   - `uv init` - Initialize project with pyproject.toml
   - `uv add dash dash-mantine-components dash-chart-editor pandas` - Add dependencies
   - `uv run python main.py` - Run application
-- **Benefits**: Explain fast dependency resolution and virtual environment management
+- **Benefits**: Explain fast dependency resolution and package management
 
 ### React Integration
 - **Automatic Instantiation**: React will be automatically available through dash-mantine-components
