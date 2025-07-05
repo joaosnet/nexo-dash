@@ -380,6 +380,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Biblioteca necessária para FBXLoader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fflate/0.7.4/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
     
     <!-- Pyodide para execução de Python no navegador -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
@@ -492,6 +495,9 @@
                         // Criar geometria inicial (plataforma do laboratório)
                         this.createLaboratoryPlatform();
                         
+                        // Carregar modelos 3D adicionais do laboratório
+                        this.loadLaboratoryModels();
+                        
                         // Configurar responsividade
                         window.addEventListener('resize', this.onWindowResize.bind(this));
 
@@ -509,20 +515,20 @@
             loadDrTuring() {
                 LoadingSystem.updateProgress(3, 'Carregando Dra. Ana Turing...');
                 
-                // Inicializar GLTFLoader
-                const loader = new THREE.GLTFLoader();
+                // Inicializar FBXLoader para modelo realista
+                const loader = new THREE.FBXLoader();
                 
-                // Carregar modelo 3D da Dra. Turing
+                // Carregar modelo 3D realista da Dra. Turing com esqueleto
                 loader.load(
-                    './assets/Pbr/base_basic_pbr.glb',
-                    (gltf) => {
-                        console.log('Modelo da Dra. Turing carregado com sucesso!');
+                    './assets/dra_ana_turing_realista/character.fbx',
+                    (fbx) => {
+                        console.log('Modelo realista da Dra. Turing carregado com sucesso!');
                         
-                        const drTuring = gltf.scene;
+                        const drTuring = fbx;
                         
                         // Posicionar próximo ao laboratório - lado esquerdo em posição mais central
                         drTuring.position.set(-8, 0, 5);
-                        drTuring.scale.set(2.5, 2.5, 2.5); // Tamanho maior para ser mais visível
+                        drTuring.scale.set(0.05, 0.05, 0.05); // Modelos FBX geralmente são maiores
                         drTuring.rotation.y = Math.PI / 4; // Girar para olhar em direção ao centro
                         
                         // Configurar materiais com cores realistas para um personagem humano
@@ -536,7 +542,8 @@
                                     if (child.name.toLowerCase().includes('skin') || 
                                         child.material.name?.toLowerCase().includes('skin') ||
                                         child.name.toLowerCase().includes('head') ||
-                                        child.name.toLowerCase().includes('face')) {
+                                        child.name.toLowerCase().includes('face') ||
+                                        child.name.toLowerCase().includes('body')) {
                                         // Cor de pele realista
                                         child.material.color = new THREE.Color(0xffdbac);
                                         child.material.transparent = false;
@@ -554,6 +561,7 @@
                                     } else if (child.name.toLowerCase().includes('cloth') ||
                                                child.name.toLowerCase().includes('shirt') ||
                                                child.name.toLowerCase().includes('dress') ||
+                                               child.name.toLowerCase().includes('top') ||
                                                child.material.name?.toLowerCase().includes('cloth')) {
                                         // Jaleco branco de laboratório
                                         child.material.color = new THREE.Color(0xf8f8ff);
@@ -584,40 +592,112 @@
                                 }
                             }
                         });
-                                  // Adicionar à cena
-                AppState.scene.add(drTuring);
-                AppState.drTuring = drTuring;
-                
-                // Sistema de animações da Dra. Turing
-                this.setupDrTuringAnimations(drTuring);
-                
-                // Sistema de fala 3D
-                this.setupDrTuringSpeech3D(drTuring);
-                
-                // Adicionar iluminação especial para a Dra. Turing
-                this.addDrTuringLighting(drTuring);
-                
-                // Mostrar mensagem inicial com animação de entrada
-                setTimeout(() => {
-                    this.drTuringSpeak3D(`Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?`);
-                    
-                    // Adicionar gesto de boas-vindas
-                    setTimeout(() => {
-                        if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
-                            AppState.drTuringAnimations.performGesture('wave');
+
+                        // Configurar sistema de animação se houver esqueleto
+                        let mixer = null;
+                        let idleAction = null;
+                        let speakAction = null;
+                        let waveAction = null;
+
+                        if (fbx.animations && fbx.animations.length > 0) {
+                            mixer = new THREE.AnimationMixer(fbx);
+                            
+                            // Procurar por animações específicas
+                            fbx.animations.forEach((clip, index) => {
+                                const action = mixer.clipAction(clip);
+                                
+                                // Identificar tipo de animação pelo nome ou índice
+                                const clipName = clip.name.toLowerCase();
+                                
+                                if (clipName.includes('idle') || clipName.includes('breathing') || index === 0) {
+                                    idleAction = action;
+                                    action.loop = THREE.LoopRepeat;
+                                    action.play();
+                                } else if (clipName.includes('talk') || clipName.includes('speak') || index === 1) {
+                                    speakAction = action;
+                                    action.loop = THREE.LoopRepeat;
+                                } else if (clipName.includes('wave') || clipName.includes('hello') || index === 2) {
+                                    waveAction = action;
+                                    action.loop = THREE.LoopOnce;
+                                }
+                            });
+                            
+                            // Se não encontrou animações específicas, usar a primeira como idle
+                            if (!idleAction && fbx.animations.length > 0) {
+                                idleAction = mixer.clipAction(fbx.animations[0]);
+                                idleAction.loop = THREE.LoopRepeat;
+                                idleAction.play();
+                            }
+                        } else {
+                            console.log('Modelo não possui animações, criando animações procedurais...');
                         }
-                    }, 1000);
-                }, 2000);
+
+                        // Armazenar referências das animações
+                        AppState.drTuringMixer = mixer;
+                        AppState.drTuringAnimations = {
+                            idle: idleAction,
+                            speak: speakAction,
+                            wave: waveAction,
+                            isPlaying: 'idle'
+                        };
+
+                        // Adicionar à cena
+                        AppState.scene.add(drTuring);
+                        AppState.drTuring = drTuring;
                         
+                        // Sistema de animações da Dra. Turing
+                        this.setupDrTuringAnimations(drTuring);
+                        
+                        // Sistema de fala 3D
+                        this.setupDrTuringSpeech3D(drTuring);
+                        
+                        // Adicionar iluminação especial para a Dra. Turing
+                        this.addDrTuringLighting(drTuring);
+                        
+                        // Mostrar mensagem inicial com animação de entrada
+                        setTimeout(() => {
+                            this.drTuringSpeak3D(`Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?`);
+                            
+                            // Adicionar gesto de boas-vindas
+                            setTimeout(() => {
+                                this.playDrTuringAnimation('wave');
+                            }, 1000);
+                        }, 2000);
+                                
                         LoadingSystem.updateProgress(4, 'Dra. Turing online!');
                     },
                     (progress) => {
                         console.log('Progresso do carregamento:', (progress.loaded / progress.total * 100) + '%');
                     },
                     (error) => {
-                        console.error('Erro ao carregar modelo da Dra. Turing:', error);
-                        // Criar um placeholder visual mais realista se o modelo falhar
-                        this.createDrTuringPlaceholder();
+                        console.error('Erro ao carregar modelo realista da Dra. Turing:', error);
+                        console.log('Tentando fallback para modelo GLB...');
+                        
+                        // Fallback para o modelo GLB original
+                        const gltfLoader = new THREE.GLTFLoader();
+                        gltfLoader.load(
+                            './assets/dra_ana_turing/Pbr/base_basic_pbr.glb',
+                            (gltf) => {
+                                console.log('Modelo GLB de fallback carregado!');
+                                const drTuring = gltf.scene;
+                                drTuring.position.set(-8, 0, 5);
+                                drTuring.scale.set(2.5, 2.5, 2.5);
+                                drTuring.rotation.y = Math.PI / 4;
+                                
+                                AppState.scene.add(drTuring);
+                                AppState.drTuring = drTuring;
+                                this.setupDrTuringAnimations(drTuring);
+                                this.setupDrTuringSpeech3D(drTuring);
+                                this.addDrTuringLighting(drTuring);
+                                
+                                LoadingSystem.updateProgress(4, 'Dra. Turing online!');
+                            },
+                            undefined,
+                            (fallbackError) => {
+                                console.error('Erro no fallback:', fallbackError);
+                                this.createDrTuringPlaceholder();
+                            }
+                        );
                     }
                 );
             },
@@ -1266,6 +1346,66 @@
                 console.log('Sistema de animações humanizadas configurado para Dra. Turing');
             },
 
+            // Nova função para controlar animações FBX com esqueleto
+            playDrTuringAnimation(animationType = 'idle') {
+                if (!AppState.drTuringMixer || !AppState.drTuringAnimations) {
+                    console.log('Sistema de animação FBX não disponível, usando animações procedurais');
+                    if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                        AppState.drTuringAnimations.performGesture(animationType);
+                    }
+                    return;
+                }
+
+                const animations = AppState.drTuringAnimations;
+                let targetAction = null;
+
+                // Parar animação atual se necessário
+                Object.values(animations).forEach(action => {
+                    if (action && typeof action.stop === 'function') {
+                        action.stop();
+                    }
+                });
+
+                // Selecionar animação baseada no tipo
+                switch(animationType) {
+                    case 'idle':
+                        targetAction = animations.idle;
+                        break;
+                    case 'speak':
+                    case 'talk':
+                        targetAction = animations.speak;
+                        break;
+                    case 'wave':
+                    case 'hello':
+                        targetAction = animations.wave;
+                        break;
+                    default:
+                        targetAction = animations.idle;
+                }
+
+                // Reproduzir animação se disponível
+                if (targetAction) {
+                    targetAction.reset();
+                    targetAction.play();
+                    animations.isPlaying = animationType;
+                    console.log(`Reproduzindo animação: ${animationType}`);
+                } else {
+                    console.log(`Animação '${animationType}' não encontrada, mantendo idle`);
+                    if (animations.idle) {
+                        animations.idle.reset();
+                        animations.idle.play();
+                        animations.isPlaying = 'idle';
+                    }
+                }
+            },
+
+            // Atualizar mixer de animações no loop principal
+            updateDrTuringAnimations(deltaTime) {
+                if (AppState.drTuringMixer) {
+                    AppState.drTuringMixer.update(deltaTime);
+                }
+            },
+
             setupDrTuringSpeech3D(model) {
                 // Sistema de fala 3D com balões de texto na cena
                 AppState.drTuringSpeech3D = {
@@ -1430,9 +1570,27 @@
             },
 
             drTuringSpeak3D(text, duration = 5000) {
+                // Ativar animação de fala
+                this.playDrTuringAnimation('speak');
+                
+                // Intensificar iluminação quando falando
+                if (AppState.drTuringLighting && AppState.drTuringLighting.intensifyWhenSpeaking) {
+                    AppState.drTuringLighting.intensifyWhenSpeaking();
+                }
+                
                 if (AppState.drTuringSpeech3D && AppState.drTuringSpeech3D.speak) {
                     AppState.drTuringSpeech3D.speak(text, duration);
                 }
+                
+                // Voltar para animação idle após falar
+                setTimeout(() => {
+                    this.playDrTuringAnimation('idle');
+                    
+                    // Voltar iluminação ao normal
+                    if (AppState.drTuringLighting && AppState.drTuringLighting.normalIntensity) {
+                        AppState.drTuringLighting.normalIntensity();
+                    }
+                }, duration);
             },
 
             addDrTuringLighting(model) {
@@ -1861,6 +2019,370 @@
                 return Math.pow(2, -10 * t) * Math.sin((t - s) * (2 * Math.PI) / p) + 1;
             },
 
+            loadLaboratoryModels() {
+                const loader = new THREE.GLTFLoader();
+                
+                // Carregar servidor/computador principal (substituir núcleo central)
+                loader.load(
+                    './assets/servidor/scene.gltf',
+                    (gltf) => {
+                        console.log('Modelo do servidor carregado com sucesso!');
+                        
+                        // Remover núcleo esférico simples
+                        const oldCore = AppState.scene.getObjectByName('laboratory-core');
+                        if (oldCore) {
+                            AppState.scene.remove(oldCore);
+                        }
+                        
+                        const server = gltf.scene;
+                        server.position.set(0, 1.5, 0);
+                        server.scale.set(0.8, 0.8, 0.8);
+                        server.name = 'laboratory-core';
+                        server.userData = { isServer: true };
+                        
+                        // Configurar materiais do servidor
+                        server.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                if (child.material) {
+                                    child.material.emissive = new THREE.Color(0x002244);
+                                    child.material.emissiveIntensity = 0.1;
+                                }
+                            }
+                        });
+                        
+                        AppState.scene.add(server);
+                        console.log('Servidor adicionado como núcleo do laboratório');
+                        
+                        // Dra. Turing comenta sobre o servidor
+                        setTimeout(() => {
+                            ThreeJSSystem.drTuringSpeak3D('Olhe só! O núcleo do laboratório agora é um servidor real. Este será o coração computacional do nosso dashboard de análise cardíaca!', 6000);
+                        }, 2000);
+                    },
+                    (progress) => {
+                        console.log('Carregando servidor:', (progress.loaded / progress.total * 100) + '%');
+                    },
+                    (error) => {
+                        console.error('Erro ao carregar servidor:', error);
+                        // Manter núcleo esférico simples se falhar
+                    }
+                );
+                
+                // Carregar GPU/placa de vídeo
+                loader.load(
+                    './assets/gpu_nvidia/Pbr/base_basic_pbr.glb',
+                    (gltf) => {
+                        console.log('Modelo da GPU carregado com sucesso!');
+                        
+                        const gpu = gltf.scene;
+                        gpu.position.set(6, 1, -3);
+                        gpu.scale.set(1.5, 1.5, 1.5);
+                        gpu.rotation.y = Math.PI / 4;
+                        gpu.name = 'laboratory-gpu';
+                        
+                        // Configurar materiais da GPU com efeito tech
+                        gpu.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                if (child.material) {
+                                    child.material.color = new THREE.Color(0x00ff00);
+                                    child.material.emissive = new THREE.Color(0x004400);
+                                    child.material.emissiveIntensity = 0.3;
+                                    child.material.metalness = 0.8;
+                                    child.material.roughness = 0.2;
+                                }
+                            }
+                        });
+                        
+                        AppState.scene.add(gpu);
+                        
+                        // Adicionar efeito de rotação para a GPU
+                        this.addGPUAnimation(gpu);
+                        
+                        console.log('GPU adicionada ao laboratório');
+                        
+                        // Dra. Turing comenta sobre a GPU
+                        setTimeout(() => {
+                            ThreeJSSystem.drTuringSpeak3D('Impressionante! Uma GPU NVIDIA real agora faz parte do nosso laboratório. Ela simboliza o poder de processamento que usaremos para análises de dados complexas!', 6000);
+                        }, 4000);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Erro ao carregar GPU:', error);
+                    }
+                );
+                
+                // Carregar ícone 3D do Python
+                loader.load(
+                    './assets/icon_3d_python/Pbr/base_basic_pbr.glb',
+                    (gltf) => {
+                        console.log('Ícone 3D do Python carregado com sucesso!');
+                        
+                        const pythonIcon = gltf.scene;
+                        pythonIcon.position.set(-6, 2, -3);
+                        pythonIcon.scale.set(1.2, 1.2, 1.2);
+                        pythonIcon.name = 'python-icon';
+                        
+                        // Configurar materiais do Python com cores clássicas
+                        pythonIcon.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                if (child.material) {
+                                    // Cores do Python: azul e amarelo
+                                    if (child.name && child.name.toLowerCase().includes('blue')) {
+                                        child.material.color = new THREE.Color(0x3776ab);
+                                        child.material.emissive = new THREE.Color(0x001144);
+                                    } else if (child.name && child.name.toLowerCase().includes('yellow')) {
+                                        child.material.color = new THREE.Color(0xffd43b);
+                                        child.material.emissive = new THREE.Color(0x443300);
+                                    } else {
+                                        child.material.color = new THREE.Color(0x3776ab);
+                                        child.material.emissive = new THREE.Color(0x001144);
+                                    }
+                                    child.material.emissiveIntensity = 0.2;
+                                    child.material.metalness = 0.3;
+                                    child.material.roughness = 0.4;
+                                }
+                            }
+                        });
+                        
+                        AppState.scene.add(pythonIcon);
+                        
+                        // Adicionar animação flutuante para o ícone Python
+                        this.addFloatingAnimation(pythonIcon);
+                        
+                        console.log('Ícone Python adicionado ao laboratório');
+                        
+                        // Dra. Turing comenta sobre o Python
+                        setTimeout(() => {
+                            ThreeJSSystem.drTuringSpeak3D('Perfeito! O ícone 3D do Python está flutuando majestosamente! Python será nossa linguagem principal para criar visualizações incríveis dos dados cardíacos.', 6000);
+                        }, 6000);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Erro ao carregar ícone Python:', error);
+                    }
+                );
+                
+                // Carregar caixa de ferramentas
+                loader.load(
+                    './assets/tool_box/Pbr/base_basic_pbr.glb',
+                    (gltf) => {
+                        console.log('Caixa de ferramentas carregada com sucesso!');
+                        
+                        const toolBox = gltf.scene;
+                        toolBox.position.set(6, 0.5, 3);
+                        toolBox.scale.set(1.8, 1.8, 1.8);
+                        toolBox.rotation.y = -Math.PI / 6;
+                        toolBox.name = 'tool-box';
+                        
+                        // Configurar materiais da caixa de ferramentas
+                        toolBox.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                if (child.material) {
+                                    child.material.color = new THREE.Color(0xff6b47);
+                                    child.material.emissive = new THREE.Color(0x442200);
+                                    child.material.emissiveIntensity = 0.15;
+                                    child.material.metalness = 0.6;
+                                    child.material.roughness = 0.3;
+                                }
+                            }
+                        });
+                        
+                        AppState.scene.add(toolBox);
+                        console.log('Caixa de ferramentas adicionada ao laboratório');
+                        
+                        // Dra. Turing comenta sobre a caixa de ferramentas
+                        setTimeout(() => {
+                            ThreeJSSystem.drTuringSpeak3D('Excelente! Nossa caixa de ferramentas está aqui. Ela representa todas as bibliotecas e utilitários que usaremos: Dash, Plotly, Pandas e muito mais!', 6000);
+                        }, 8000);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Erro ao carregar caixa de ferramentas:', error);
+                    }
+                );
+                
+                // Adicionar elementos decorativos extras
+                this.createDecorativeElements();
+            },
+
+            createDecorativeElements() {
+                // Criar múltiplos elementos Python flutuantes
+                const loader = new THREE.GLTFLoader();
+                
+                // Posições para elementos decorativos
+                const decorativePositions = [
+                    { x: -3, y: 3, z: 6, scale: 0.4, speed: 0.003 },
+                    { x: 4, y: 4, z: -6, scale: 0.3, speed: 0.005 },
+                    { x: -7, y: 2.5, z: 2, scale: 0.35, speed: 0.004 },
+                    { x: 7, y: 3.5, z: 1, scale: 0.25, speed: 0.006 }
+                ];
+                
+                decorativePositions.forEach((pos, index) => {
+                    // Alternar entre ícones Python e mini GPUs
+                    const modelPath = index % 2 === 0 ? 
+                        './assets/icon_3d_python/Pbr/base_basic_pbr.glb' :
+                        './assets/gpu_nvidia/Pbr/base_basic_pbr.glb';
+                    
+                    loader.load(
+                        modelPath,
+                        (gltf) => {
+                            const decorative = gltf.scene.clone();
+                            decorative.position.set(pos.x, pos.y, pos.z);
+                            decorative.scale.set(pos.scale, pos.scale, pos.scale);
+                            decorative.name = `decorative-${index}`;
+                            decorative.userData = { 
+                                originalY: pos.y, 
+                                speed: pos.speed,
+                                type: index % 2 === 0 ? 'python' : 'gpu'
+                            };
+                            
+                            // Configurar materiais decorativos
+                            decorative.traverse((child) => {
+                                if (child.isMesh && child.material) {
+                                    child.material.transparent = true;
+                                    child.material.opacity = 0.6;
+                                    
+                                    if (decorative.userData.type === 'python') {
+                                        child.material.color = new THREE.Color(0x3776ab);
+                                        child.material.emissive = new THREE.Color(0x001144);
+                                    } else {
+                                        child.material.color = new THREE.Color(0x00aa00);
+                                        child.material.emissive = new THREE.Color(0x002200);
+                                    }
+                                    child.material.emissiveIntensity = 0.3;
+                                }
+                            });
+                            
+                            AppState.scene.add(decorative);
+                            
+                            // Adicionar animação individual
+                            this.addDecorativeAnimation(decorative);
+                            
+                            console.log(`Elemento decorativo ${index} adicionado`);
+                        },
+                        undefined,
+                        (error) => {
+                            console.log(`Erro ao carregar elemento decorativo ${index}:`, error);
+                        }
+                    );
+                });
+                
+                // Adicionar partículas holográficas flutuantes
+                this.createHolographicParticles();
+                
+                // Comentário final da Dra. Turing sobre o ambiente completo
+                setTimeout(() => {
+                    ThreeJSSystem.drTuringSpeak3D('Incrível! Nosso laboratório virtual está completo com modelos 3D realistas, elementos decorativos flutuantes e partículas holográficas. Agora temos um ambiente verdadeiramente imersivo para nossa jornada de desenvolvimento!', 8000);
+                }, 12000);
+            },
+
+            addDecorativeAnimation(object) {
+                const animateDecorative = () => {
+                    if (object && object.parent) {
+                        const time = Date.now() * object.userData.speed;
+                        object.position.y = object.userData.originalY + Math.sin(time) * 0.3;
+                        object.rotation.y += 0.01;
+                        object.rotation.x = Math.sin(time * 0.5) * 0.1;
+                        requestAnimationFrame(animateDecorative);
+                    }
+                };
+                animateDecorative();
+            },
+
+            createHolographicParticles() {
+                // Criar sistema de partículas holográficas no ar
+                const particleCount = 50;
+                const particles = new THREE.Group();
+                particles.name = 'holographic-particles';
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particleGeometry = new THREE.SphereGeometry(0.02, 4, 4);
+                    const particleMaterial = new THREE.MeshBasicMaterial({
+                        color: Math.random() > 0.5 ? 0x00ff88 : 0x00ccff,
+                        transparent: true,
+                        opacity: 0.6
+                    });
+                    
+                    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                    
+                    // Posição aleatória em esfera ao redor do laboratório
+                    const radius = 5 + Math.random() * 8;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.random() * Math.PI;
+                    
+                    particle.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                    particle.position.y = 1 + Math.random() * 4;
+                    particle.position.z = radius * Math.sin(phi) * Math.sin(theta);
+                    
+                    particle.userData = {
+                        originalPosition: particle.position.clone(),
+                        speed: 0.001 + Math.random() * 0.002,
+                        phase: Math.random() * Math.PI * 2
+                    };
+                    
+                    particles.add(particle);
+                }
+                
+                AppState.scene.add(particles);
+                
+                // Animar partículas
+                this.animateHolographicParticles(particles);
+            },
+
+            animateHolographicParticles(particleGroup) {
+                const animateParticles = () => {
+                    if (particleGroup && particleGroup.parent) {
+                        particleGroup.children.forEach((particle, index) => {
+                            const time = Date.now() * particle.userData.speed;
+                            const phase = particle.userData.phase;
+                            
+                            // Movimento orbital suave
+                            particle.position.x = particle.userData.originalPosition.x + Math.sin(time + phase) * 0.5;
+                            particle.position.y = particle.userData.originalPosition.y + Math.cos(time * 0.7 + phase) * 0.3;
+                            particle.position.z = particle.userData.originalPosition.z + Math.cos(time + phase) * 0.5;
+                            
+                            // Fade in/out
+                            particle.material.opacity = 0.3 + Math.sin(time * 2 + phase) * 0.3;
+                        });
+                        
+                        requestAnimationFrame(animateParticles);
+                    }
+                };
+                animateParticles();
+            },
+
+            addGPUAnimation(gpu) {
+                // Animação de rotação suave para a GPU
+                const animateGPU = () => {
+                    if (gpu && gpu.parent) {
+                        gpu.rotation.y += 0.01;
+                        gpu.position.y = 1 + Math.sin(Date.now() * 0.001) * 0.1;
+                        requestAnimationFrame(animateGPU);
+                    }
+                };
+                animateGPU();
+            },
+
+            addFloatingAnimation(object) {
+                // Animação flutuante para ícones
+                const animateFloat = () => {
+                    if (object && object.parent) {
+                        const time = Date.now() * 0.002;
+                        object.position.y = object.position.y + Math.sin(time) * 0.005;
+                        object.rotation.y += 0.005;
+                        requestAnimationFrame(animateFloat);
+                    }
+                };
+                animateFloat();
+            },
+
             createLaboratoryPlatform() {
                 // Criar plataforma circular holográfica
                 const platformGeometry = new THREE.CylinderGeometry(8, 8, 0.2, 32);
@@ -1898,11 +2420,42 @@
             animate() {
                 AppState.animationId = requestAnimationFrame(this.animate.bind(this));
                 
-                // Animar núcleo central
+                // Calcular delta time para animações FBX
+                const currentTime = performance.now();
+                const deltaTime = (currentTime - (AppState.lastTime || currentTime)) / 1000;
+                AppState.lastTime = currentTime;
+                
+                // Atualizar animações FBX da Dra. Turing
+                this.updateDrTuringAnimations(deltaTime);
+                
+                // Animar núcleo central (agora pode ser o servidor)
                 const core = AppState.scene.getObjectByName('laboratory-core');
                 if (core) {
                     core.rotation.y += 0.01;
-                    core.position.y = 2 + Math.sin(Date.now() * 0.001) * 0.2;
+                    // Se for o modelo do servidor, animar diferente
+                    if (core.userData && core.userData.isServer) {
+                        core.position.y = 1.5 + Math.sin(Date.now() * 0.0008) * 0.1;
+                    } else {
+                        core.position.y = 2 + Math.sin(Date.now() * 0.001) * 0.2;
+                    }
+                }
+
+                // Animar outros modelos 3D no laboratório
+                const gpu = AppState.scene.getObjectByName('laboratory-gpu');
+                if (gpu) {
+                    gpu.rotation.y += 0.015;
+                    gpu.position.y = 1 + Math.sin(Date.now() * 0.0012) * 0.15;
+                }
+
+                const pythonIcon = AppState.scene.getObjectByName('python-icon');
+                if (pythonIcon) {
+                    pythonIcon.rotation.y += 0.008;
+                    pythonIcon.position.y = 2 + Math.sin(Date.now() * 0.0015) * 0.12;
+                }
+
+                const toolBox = AppState.scene.getObjectByName('tool-box');
+                if (toolBox) {
+                    toolBox.rotation.y += 0.005;
                 }
 
                 AppState.controls.update();
@@ -2647,60 +3200,18 @@ dashboard-cardiaco/<br>
 
                 folderStructure.forEach((item, index) => {
                     try {
-                        // Criar geometria com tamanhos personalizados
-                        const geometry = new THREE.BoxGeometry(...item.size);
+                        // Verificar se devemos usar modelo 3D específico
+                        if (item.name === 'main.py' && index === 4) {
+                            // Usar modelo 3D do Python para main.py
+                            this.loadBlueprintModel('./assets/icon_3d_python/Pbr/base_basic_pbr.glb', item, index, blueprintGroup);
+                        } else if (item.name === 'utils/' && index === 2) {
+                            // Usar modelo da caixa de ferramentas para utils/
+                            this.loadBlueprintModel('./assets/tool_box/Pbr/base_basic_pbr.glb', item, index, blueprintGroup);
+                        } else {
+                            // Criar geometria padrão melhorada para outros itens
+                            this.createEnhancedBlueprintItem(item, index, blueprintGroup);
+                        }
                         
-                        // Material com efeitos holográficos melhorados
-                        const material = new THREE.MeshPhongMaterial({
-                            color: item.color,
-                            transparent: true,
-                            opacity: 0.7,
-                            emissive: item.color,
-                            emissiveIntensity: 0.15,
-                            shininess: 100,
-                            specular: 0x666666,
-                            wireframe: false
-                        });
-
-                        const mesh = new THREE.Mesh(geometry, material);
-                        mesh.position.set(...item.position);
-                        mesh.userData = { 
-                            name: item.name, 
-                            type: item.type, 
-                            originalColor: item.color,
-                            projectInfo: {
-                                name: item.name,
-                                description: item.description,
-                                function: item.function,
-                                importance: item.importance
-                            }
-                        };
-                        mesh.name = `blueprint-item-${index}`;
-                        mesh.castShadow = true;
-                        mesh.receiveShadow = true;
-                        
-                        // Adicionar efeito de "respiração" para indicar interatividade
-                        this.addBreathingEffect(mesh, index);
-                        
-                        // Adicionar borda wireframe
-                        const wireframe = new THREE.WireframeGeometry(geometry);
-                        const wireframeMaterial = new THREE.LineBasicMaterial({ 
-                            color: item.color, 
-                            transparent: true, 
-                            opacity: 0.8,
-                            linewidth: 2
-                        });
-                        const wireframeMesh = new THREE.LineSegments(wireframe, wireframeMaterial);
-                        mesh.add(wireframeMesh);
-                        
-                        blueprintGroup.add(mesh);
-
-                        // Criar label 3D melhorado
-                        this.createImprovedLabel(item, index, blueprintGroup);
-
-                        // Adicionar partículas ao redor dos objetos
-                        this.createParticleEffect(item, blueprintGroup);
-
                         console.log(`Criado item melhorado: ${item.name} em posição`, item.position);
                     } catch (error) {
                         console.error(`Erro ao criar item ${item.name}:`, error);
@@ -2727,6 +3238,189 @@ dashboard-cardiaco/<br>
 
                 // Configurar interação com raycasting
                 this.setupBlueprintInteraction();
+            },
+
+            loadBlueprintModel(modelPath, item, index, group) {
+                const loader = new THREE.GLTFLoader();
+                
+                loader.load(
+                    modelPath,
+                    (gltf) => {
+                        console.log(`Modelo 3D carregado para ${item.name}:`, modelPath);
+                        
+                        const model = gltf.scene;
+                        model.position.set(...item.position);
+                        
+                        // Escala baseada no tipo de item
+                        let scale = 0.8;
+                        if (item.type === 'file') {
+                            scale = 0.6;
+                        } else if (item.name === 'utils/') {
+                            scale = 1.0;
+                        }
+                        model.scale.set(scale, scale, scale);
+                        
+                        // Configurar userData para interação
+                        model.userData = { 
+                            name: item.name, 
+                            type: item.type, 
+                            originalColor: item.color,
+                            projectInfo: {
+                                name: item.name,
+                                description: item.description,
+                                function: item.function,
+                                importance: item.importance
+                            }
+                        };
+                        model.name = `blueprint-item-${index}`;
+                        
+                        // Configurar materiais com cores do projeto
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                if (child.material) {
+                                    if (item.name === 'main.py') {
+                                        // Cores do Python
+                                        child.material.color = new THREE.Color(0x3776ab);
+                                        child.material.emissive = new THREE.Color(0x001144);
+                                        child.material.emissiveIntensity = 0.3;
+                                    } else if (item.name === 'utils/') {
+                                        // Cores de ferramentas
+                                        child.material.color = new THREE.Color(0xff6b47);
+                                        child.material.emissive = new THREE.Color(0x442200);
+                                        child.material.emissiveIntensity = 0.2;
+                                    }
+                                    child.material.metalness = 0.5;
+                                    child.material.roughness = 0.3;
+                                }
+                                
+                                // Adicionar userData para detecção de clique
+                                child.userData = model.userData;
+                            }
+                        });
+                        
+                        group.add(model);
+                        
+                        // Adicionar efeito de respiração
+                        this.addBreathingEffect(model, index);
+                        
+                        // Criar label melhorado
+                        this.createImprovedLabel(item, index, group);
+                        
+                        // Adicionar partículas
+                        this.createParticleEffect(item, group);
+                        
+                        // Animação de entrada especial para modelos 3D
+                        this.animateModelEntrance(model);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`Erro ao carregar modelo para ${item.name}:`, error);
+                        // Fallback para geometria padrão
+                        this.createEnhancedBlueprintItem(item, index, group);
+                    }
+                );
+            },
+
+            createEnhancedBlueprintItem(item, index, group) {
+                // Criar geometria com tamanhos personalizados
+                const geometry = new THREE.BoxGeometry(...item.size);
+                
+                // Material com efeitos holográficos melhorados
+                const material = new THREE.MeshPhongMaterial({
+                    color: item.color,
+                    transparent: true,
+                    opacity: 0.7,
+                    emissive: item.color,
+                    emissiveIntensity: 0.15,
+                    shininess: 100,
+                    specular: 0x666666,
+                    wireframe: false
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(...item.position);
+                mesh.userData = { 
+                    name: item.name, 
+                    type: item.type, 
+                    originalColor: item.color,
+                    projectInfo: {
+                        name: item.name,
+                        description: item.description,
+                        function: item.function,
+                        importance: item.importance
+                    }
+                };
+                mesh.name = `blueprint-item-${index}`;
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                // Adicionar efeito de "respiração" para indicar interatividade
+                this.addBreathingEffect(mesh, index);
+                
+                // Adicionar borda wireframe
+                const wireframe = new THREE.WireframeGeometry(geometry);
+                const wireframeMaterial = new THREE.LineBasicMaterial({ 
+                    color: item.color, 
+                    transparent: true, 
+                    opacity: 0.8,
+                    linewidth: 2
+                });
+                const wireframeMesh = new THREE.LineSegments(wireframe, wireframeMaterial);
+                mesh.add(wireframeMesh);
+                
+                group.add(mesh);
+
+                // Criar label 3D melhorado
+                this.createImprovedLabel(item, index, group);
+
+                // Adicionar partículas ao redor dos objetos
+                this.createParticleEffect(item, group);
+            },
+
+            animateModelEntrance(model) {
+                // Animação de entrada dramática para modelos 3D
+                const originalScale = { x: model.scale.x, y: model.scale.y, z: model.scale.z };
+                const originalPosition = { x: model.position.x, y: model.position.y, z: model.position.z };
+                
+                // Começar pequeno e abaixo da posição final
+                model.scale.set(0.1, 0.1, 0.1);
+                model.position.y = originalPosition.y - 3;
+                model.rotation.y = Math.PI * 2;
+                
+                const startTime = Date.now();
+                const duration = 2000;
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing com bounce
+                    const easedProgress = this.easeOutBounce(progress);
+                    
+                    // Escala
+                    model.scale.x = 0.1 + (originalScale.x - 0.1) * easedProgress;
+                    model.scale.y = 0.1 + (originalScale.y - 0.1) * easedProgress;
+                    model.scale.z = 0.1 + (originalScale.z - 0.1) * easedProgress;
+                    
+                    // Posição Y
+                    model.position.y = (originalPosition.y - 3) + 3 * easedProgress;
+                    
+                    // Rotação
+                    model.rotation.y = Math.PI * 2 * (1 - progress);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // Finalizar na posição correta
+                        model.scale.set(originalScale.x, originalScale.y, originalScale.z);
+                        model.position.y = originalPosition.y;
+                        model.rotation.y = 0;
+                    }
+                };
+                
+                animate();
             },
 
             createBlueprintBase(group) {
@@ -3308,11 +4002,11 @@ lint = "ruff check ."`
                     text-align: center;
                     animation: pulse 2s infinite;
                 `;
-                
+
                 clickIndicator.innerHTML = `
                     🖱️ <span style="color: #004d2a;">CLIQUE NOS BLOCOS</span> para explorar! ✨
                 `;
-                
+
                 // Adicionar animação CSS
                 const style = document.createElement('style');
                 style.textContent = `
@@ -3324,26 +4018,19 @@ lint = "ruff check ."`
                 `;
                 document.head.appendChild(style);
                 document.body.appendChild(clickIndicator);
-                
-                // Remover após um tempo mas reaparecer periodicamente
+
+                // Remover após um tempo e não reaparecer
                 setTimeout(() => {
                     clickIndicator.style.opacity = '0';
                     clickIndicator.style.transition = 'opacity 1s';
-                    setTimeout(() => {
-                        clickIndicator.style.opacity = '0.8';
-                        clickIndicator.innerHTML = '💡 Lembre-se: os blocos são interativos!';
-                        setTimeout(() => {
-                            clickIndicator.style.opacity = '0';
-                            setTimeout(() => clickIndicator.remove(), 1000);
-                        }, 3000);
-                    }, 1000);
+                    setTimeout(() => clickIndicator.remove(), 1000);
                 }, 8000);
             },
 
             drTuringPresentsProject() {
                 // Aguardar um momento antes da Dra. Turing falar sobre o projeto
                 setTimeout(() => {
-                    this.drTuringSpeak3D(`Excelente! Agora você pode ver a arquitetura 3D do nosso projeto. Cada bloco representa um componente essencial do dashboard que construiremos. Explore passando o mouse sobre os blocos e clique neles para descobrir sua função específica.`, 8000);
+                    this.drTuringSpeak3D(`Excelente! Agora você pode ver a arquitetura 3D completa do nosso laboratório virtual. Observe os modelos realistas: temos servidores, GPUs para processamento, ícones Python e ferramentas de desenvolvimento. Cada bloco representa um componente essencial do dashboard que construiremos.`, 10000);
                     
                     // Gesto de apresentação
                     setTimeout(() => {
@@ -3353,7 +4040,18 @@ lint = "ruff check ."`
                     }, 1000);
                     
                     setTimeout(() => {
-                        this.drTuringSpeak3D(`Nossa missão é analisar fatores de risco de doenças cardíacas usando dados reais do Kaggle. Vamos começar?`, 6000);
+                        this.drTuringSpeak3D(`Explore passando o mouse sobre os elementos 3D e clique neles para descobrir sua função específica. Veja como o main.py agora usa o ícone real do Python, e a pasta utils/ tem uma caixa de ferramentas autêntica!`, 8000);
+                        
+                        // Gesto de explicação
+                        setTimeout(() => {
+                            if (AppState.drTuringAnimations && AppState.drTuringAnimations.performGesture) {
+                                AppState.drTuringAnimations.performGesture('explain');
+                            }
+                        }, 2000);
+                    }, 11000);
+                    
+                    setTimeout(() => {
+                        this.drTuringSpeak3D(`Nossa missão é analisar fatores de risco de doenças cardíacas usando dados reais do Kaggle. Com toda essa infraestrutura 3D, vamos começar?`, 6000);
                         
                         // Gesto encorajador
                         setTimeout(() => {
@@ -3361,14 +4059,14 @@ lint = "ruff check ."`
                                 AppState.drTuringAnimations.performGesture('encourage');
                             }
                         }, 2000);
-                    }, 9000);
+                    }, 20000);
                     
                     // Fazer a Dra. Turing apontar para o projeto (animação especial)
                     if (AppState.drTuringAnimations && AppState.drTuringAnimations.walkTo) {
                         setTimeout(() => {
                             // Caminhar para mais perto do projeto
                             AppState.drTuringAnimations.walkTo(-5, 2, 2000);
-                        }, 16000);
+                        }, 27000);
                         
                         setTimeout(() => {
                             this.drTuringSpeak3D(`Cada pasta e arquivo tem uma função específica. Clique nos elementos para aprender mais!`, 4000);
