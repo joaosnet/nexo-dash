@@ -206,3 +206,224 @@ Objective: Ensure that the application works correctly in different environments
 - **Media Queries**: Implement breakpoints for different screen sizes
 - **Touch Optimization**: Ensure 3D controls work on touch devices
 - **Performance**: Optimize three.js rendering for mobile devices
+
+### Pycafe Integration
+# Como Usar o PyCafe no HTML ou JavaScript para Mostrar uma Aplicação de Dashboard
+
+O **PyCafe** é uma plataforma revolucionária que permite criar, executar, editar e compartilhar aplicações Python diretamente no navegador, sem necessidade de instalação[1][2]. Esta solução é especialmente poderosa para mostrar aplicações de dashboard, oferecendo três formas principais de integração: **compartilhamento via links**, **incorporação via iframe** e **integração em documentação**.
+
+## O que é o PyCafe?
+
+O PyCafe funciona através do **Pyodide**, que compila o Python para WebAssembly (WASM), permitindo que o código Python seja executado diretamente no navegador[3]. Esta plataforma suporta diversos frameworks populares incluindo **Streamlit**, **Dash**, **Panel**, **Solara** e **Gradio**[2][4].
+
+### Principais Vantagens
+
+- **Sem instalação**: Execute Python no navegador sem configuração[3]
+- **Compartilhamento simples**: Basta enviar um link para compartilhar sua aplicação[2]
+- **Escalabilidade infinita**: Roda no computador do usuário, não em servidores[3]
+- **Ambiente sandboxed**: Execução segura dentro do navegador[3]
+
+## Métodos de Integração com HTML/JavaScript
+
+### 1. Compartilhamento via Links
+
+O PyCafe oferece duas opções de compartilhamento:
+
+#### **Link com Editor (Para Desenvolvimento)**
+Este formato mostra o editor de código junto com a aplicação:
+```
+https://py.cafe/[usuario]/[projeto]
+```
+
+#### **Link Apenas da Aplicação (Para Usuários Finais)**
+Este formato mostra apenas a aplicação executando:
+```
+https://py.cafe/app/[usuario]/[projeto]
+```
+
+### 2. Incorporação via iframe
+
+A forma mais eficaz de integrar uma aplicação PyCafe em HTML é através de **iframes**. O PyCafe gera automaticamente o código HTML necessário[5][6].
+
+#### **Processo de Incorporação:**
+
+1. **Acesse seu projeto** no PyCafe
+2. **Clique no botão "Share"** na interface
+3. **Selecione a aba "EMBED"**
+4. **Copie o código HTML gerado**
+
+#### **Exemplo de Código iframe:**
+```html
+
+
+```
+
+#### **Parâmetros de URL Disponíveis:**
+- `theme=light|dark`: Define o tema da aplicação
+- `linkToApp=true|false`: Controla se mostra link para versão completa
+- `width` e `height`: Dimensões do iframe
+
+### 3. Integração em Documentação
+
+O PyCafe oferece plugins específicos para sistemas de documentação:
+
+#### **Plugin MkDocs**
+Para integrar com MkDocs, instale o plugin oficial:
+```bash
+pip install mkdocs-pycafe
+```
+
+**Configuração no mkdocs.yml:**
+```yaml
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: python
+          class: 'highlight'
+          validator: !!python/name:mkdocs_pycafe.validator
+          format: !!python/object/apply:mkdocs_pycafe.formatter
+            kwds:
+              type: streamlit
+              requirements: |
+                pandas
+                plotly
+```
+
+#### **Sintaxe em Markdown:**
+```markdown
+```
+import streamlit as st
+st.write("Hello World!")
+```
+
+```
+import plotly.express as px
+df = px.data.iris()
+fig = px.scatter(df, x="sepal_width", y="sepal_length")
+st.plotly_chart(fig)
+```
+```
+
+### 4. Integração Avançada com JavaScript
+
+Para integrações mais sofisticadas, você pode usar JavaScript para controlar iframes:
+
+#### **Controle Dinâmico de iframe:**
+```html
+
+
+
+    Dashboard PyCafe
+
+
+    
+        Meu Dashboard Interativo
+        
+        
+    
+
+    
+        // Função para carregar diferentes dashboards
+        function loadDashboard(projectName) {
+            const iframe = document.getElementById('pycafe-app');
+            iframe.src = `https://py.cafe/embed/${projectName}?theme=light`;
+        }
+
+        // Carregar dashboard padrão
+        loadDashboard('usuario/meu-dashboard');
+        
+        // Listener para mensagens do iframe
+        window.addEventListener('message', function(event) {
+            if (event.origin === 'https://py.cafe') {
+                console.log('Mensagem do PyCafe:', event.data);
+            }
+        });
+    
+
+
+```
+
+#### **Comunicação entre Páginas:**
+```javascript
+// Enviar mensagem para o iframe
+const iframe = document.getElementById('pycafe-app');
+iframe.contentWindow.postMessage({
+    type: 'update_data',
+    data: { values: [1, 2, 3, 4, 5] }
+}, 'https://py.cafe');
+
+// Receber mensagens do iframe
+window.addEventListener('message', function(event) {
+    if (event.origin === 'https://py.cafe') {
+        if (event.data.type === 'dashboard_ready') {
+            console.log('Dashboard carregado com sucesso');
+        }
+    }
+});
+```
+
+## Criando Dashboards para Integração
+
+### **Exemplo de Dashboard Streamlit:**
+```python
+import streamlit as st
+import plotly.express as px
+import pandas as pd
+
+st.title("Dashboard de Vendas")
+
+# Dados de exemplo
+data = {
+    'Mês': ['Jan', 'Fev', 'Mar', 'Abr', 'Mai'],
+    'Vendas': [100, 150, 120, 200, 180]
+}
+df = pd.DataFrame(data)
+
+# Gráfico interativo
+fig = px.bar(df, x='Mês', y='Vendas', title='Vendas Mensais')
+st.plotly_chart(fig, use_container_width=True)
+
+# Métricas
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total", f"{df['Vendas'].sum()}")
+with col2:
+    st.metric("Média", f"{df['Vendas'].mean():.0f}")
+with col3:
+    st.metric("Máximo", f"{df['Vendas'].max()}")
+```
+
+### **Exemplo de Dashboard Dash:**
+```python
+import dash
+from dash import dcc, html, Input, Output
+import plotly.express as px
+import pandas as pd
+
+app = dash.Dash(__name__)
+
+# Dados de exemplo
+df = px.data.iris()
+
+app.layout = html.Div([
+    html.H1("Dashboard Iris"),
+    dcc.Dropdown(
+        id='species-dropdown',
+        options=[{'label': i, 'value': i} for i in df.species.unique()],
+        value='setosa'
+    ),
+    dcc.Graph(id='scatter-plot')
+])
+
+@app.callback(
+    Output('scatter-plot', 'figure'),
+    Input('species-dropdown', 'value')
+)
+def update_graph(selected_species):
+    filtered_df = df[df.species == selected_species]
+    fig = px.scatter(filtered_df, x="sepal_width", y="sepal_length")
+    return fig
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+```
