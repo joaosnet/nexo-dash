@@ -64,6 +64,18 @@ export class AppInitializer {
         this.loadingUtils.updateStatus('Verificando dependências...');
         this.loadingUtils.updateProgress(10);
 
+        // Novo evento de primeiro clique
+        const activateAudio = () => {
+            document.removeEventListener('click', activateAudio);
+            document.removeEventListener('touchstart', activateAudio);
+            if (window.voiceSystem) {
+                window.voiceSystem.tryPendingSpeech();
+            }
+        };
+        
+        document.addEventListener('click', activateAudio);
+        document.addEventListener('touchstart', activateAudio);
+
         // Timeout de segurança
         const timeout = setTimeout(() => {
             console.warn('⏰ Timeout atingido, tentando continuar...');

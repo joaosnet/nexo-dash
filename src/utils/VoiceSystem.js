@@ -6,6 +6,7 @@ export class VoiceSystem {
         this.isEnabled = true;
         this.initialized = false;
         this.app = app; // Armazenar referência ao app
+        this.pendingSpeech = null; // Novo estado para discurso pendente
         this.setupVoiceSystem(); 
     }
 
@@ -34,8 +35,8 @@ export class VoiceSystem {
             return;
         }
 
-        // Adicionar tratamento de erro específico
-        if (window.speechSynthesis.speaking) {
+        // Novo tratamento para ativação pendente
+        if (window.speechSynthesis.speaking || this.pendingSpeech) {
             console.warn('⚠️ Já está falando - ignorando novo pedido');
             return;
         }
@@ -62,10 +63,10 @@ export class VoiceSystem {
             utterance.onerror = (e) => {
                 console.error('❌ Erro na síntese:', e);
                 if (e.error === 'not-allowed') {
-                    console.warn('⚠️ Ative o áudio primeiro através de interação do usuário!');
-                    // Verificar se app está disponível antes de acessar
-                    if (this.app && this.app.getSystem) {
-                        this.app.getSystem('ui').showNotification('Clique em qualquer lugar para ativar o áudio!');
+                    this.pendingSpeech = { text, lang, rate, pitch }; // Armazena para tentar novamente
+                    console.warn('⚠️ Aguardando interação do usuário...');
+                    if (this.app?.getSystem) {
+                        this.app.getSystem('ui').showNotification('Clique para ativar o áudio!', 'warning', 3000);
                     }
                 }
             };
@@ -216,5 +217,14 @@ export class VoiceSystem {
 
     isVoiceEnabled() {
         return this.isEnabled && window.voiceEnabled;
+    }
+
+    // Novo método para tentar discurso pendente
+    tryPendingSpeech() {
+        if (this.pendingSpeech) {
+            const { text, lang, rate, pitch } = this.pendingSpeech;
+            this.pendingSpeech = null;
+            this.speakText(text, lang, rate, pitch);
+        }
     }
 }

@@ -426,7 +426,7 @@ export class UISystem {
         const voiceControlButton = document.createElement('button');
         voiceControlButton.id = 'voice-control-btn';
         voiceControlButton.className = 'holographic-button voice-control';
-        voiceControlButton.innerHTML = '🔊 Desligar Voz';
+        voiceControlButton.innerHTML = '🔊 Voz Ativa';
 
         // Função para alternar estado da voz (usa VoiceSystem)
         const toggleVoice = () => {

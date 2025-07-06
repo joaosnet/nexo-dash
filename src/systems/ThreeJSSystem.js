@@ -262,6 +262,15 @@ export class ThreeJSSystem {
                 import('./three/EnvironmentManager.js').catch(() => ({ EnvironmentManager: null }))
             ]);
 
+            // Configurar FBXLoader global para suprimir avisos específicos
+            if (window.THREE?.FBXLoader) {
+                THREE.FBXLoader.prototype.onWarning = function(warning) {
+                    if (!warning.includes('ShininessExponent') && !warning.includes('more than 4 skinning weights')) {
+                        console.warn('FBXLoader:', warning);
+                    }
+                };
+            }
+
             if (EnvironmentManager) {
                 this.environmentManager = new EnvironmentManager(this);
                 await this.environmentManager.initialize().catch(err => {

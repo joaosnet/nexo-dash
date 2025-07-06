@@ -11,7 +11,6 @@
 - Sempre leia memory-bank/@architecture.md antes de escrever qualquer código. Inclua todo o esquema do banco de dados.
 - Sempre leia memory-bank/@game-design-document.md antes de escrever qualquer código.
 - Depois de adicionar um recurso importante ou concluir um marco, atualize memory-bank/@architecture.md.
-- Crie planos numerados de 6 etapas antes de codificar;
 - Exiba claramente a etapa atual do plano;
 - Peça esclarecimentos sobre ambiguidades;
 - Otimize para código mínimo e baixo overhead.
@@ -61,10 +60,6 @@ A aplicação é construída com módulos JavaScript (ES6) e segue uma arquitetu
 
 ## Fluxo de Trabalho de Desenvolvimento
 
-Para testar ou executar o projeto localmente, inicie apenas uma vez o servidor web simples na raiz do projeto.
-
-```bash
-uv run python -m http.server 8000
-```
+Para testar ou executar o projeto localmente, o servidor web simples sempre está funcionando, não inicie-o novamente.
 
 O projeto é uma aplicação de página única (`index.html`) e deve ser aberto com playwright e não requer um processo de build complexo. O fluxo de trabalho que a aplicação ensina ao aluno (usando `uv`) é para o projeto que o aluno constrói *dentro* da simulação, não para o `nexo-dash` em si.

@@ -236,6 +236,44 @@ export class DrTuringManager {
         this.model = fbx;
         this.model.name = 'dr-turing-fbx-model';
         
+        // Configuração de materiais aprimorada
+        fbx.traverse(child => {
+            if (child.isMesh) {
+                // Configuração de material para compatibilidade com Three.js
+                if (child.material) {
+                    child.material.shininess = 30; // Valor padrão seguro
+                    child.material.needsUpdate = true;
+                    
+                    // Remover propriedades não suportadas
+                    if (child.material.defines?.HAS_SHININESS_EXPONENT) {
+                        delete child.material.defines.HAS_SHININESS_EXPONENT;
+                        console.log('⚠️ Removido ShininessExponent não suportado');
+                    }
+                }
+                
+                // Otimização de skinning weights
+                if (child.geometry?.attributes?.skinWeight) {
+                    const weights = child.geometry.attributes.skinWeight;
+                    if (weights.itemSize > 4) {
+                        console.log('🔧 Otimizando skin weights para 4 influências');
+                        const newWeights = new THREE.BufferAttribute(
+                            new Float32Array(weights.count * 4),
+                            4
+                        );
+                        for (let i = 0; i < weights.count; i++) {
+                            newWeights.setXYZW(i, 
+                                weights.getX(i),
+                                weights.getY(i),
+                                weights.getZ(i),
+                                weights.getW(i)
+                            );
+                        }
+                        child.geometry.setAttribute('skinWeight', newWeights);
+                    }
+                }
+            }
+        });
+        
         // Posicionamento
         this.model.position.set(this.position.x, this.position.y, this.position.z);
         this.model.scale.set(0.05, 0.05, 0.05); // Modelos FBX são maiores
@@ -535,6 +573,7 @@ export class DrTuringManager {
      * Executa sequência inicial
      */
     playInitialSequence() {
+        // Aguardar 1s para garantir que o áudio está ready
         setTimeout(() => {
             this.speak3D(
                 'Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?',
@@ -544,7 +583,7 @@ export class DrTuringManager {
             setTimeout(() => {
                 this.playAnimation('wave');
             }, 1000);
-        }, 2000);
+        }, 1000);
     }
 
     /**
@@ -568,18 +607,6 @@ export class DrTuringManager {
         // Usar síntese de voz em vez de balões de fala
         if (window.speakText) {
             window.speakText(text, 'pt-BR', 1.0, 1.1);
-        }
-        
-        // Forçar voz feminina mesmo que seleção automática falhe
-        const currentVoice = window.speechSynthesis.getVoices().find(v => 
-            v.name === utterance.voice?.name
-        );
-        
-        if (!currentVoice || 
-            (!currentVoice.name.includes('Francisca') && 
-             !currentVoice.name.includes('Maria') && 
-             currentVoice.gender !== 'female')) {
-            utterance.voice = this.app.voiceSystem.selectBestVoice(window.speechSynthesis.getVoices(), 'pt-BR');
         }
         
         // Voltar ao normal após duração
