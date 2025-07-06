@@ -200,6 +200,23 @@ body {
     }
 }
 
+/* Ajuste adicional para responsividade do holograma */
+@media (max-width: 768px) {
+    .holographic-panel {
+        left: 5%;
+        right: 5%;
+        top: 5%;
+        bottom: 5%;
+        max-width: 90%;
+        max-height: 90%;
+        padding: 1rem;
+        font-size: 0.9rem;
+        transform: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+}
+
 @media (max-width: 480px) {
     .loading-logo {
         font-size: 1.5rem;
@@ -214,12 +231,16 @@ body {
     }
     
     .holographic-panel {
-        padding: 1rem;
-        font-size: 0.9rem;
-        left: 5px;
-        right: 5px;
-        top: 10px;
-        bottom: 10px;
+        left: 2%;
+        right: 2%;
+        top: 2%;
+        bottom: 2%;
+        max-width: 96%;
+        max-height: 96%;
+        padding: 0.8rem;
+        font-size: 0.8rem;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
     
     .panel-title {
@@ -230,6 +251,54 @@ body {
         padding: 0.6rem 1.5rem;
         font-size: 0.9rem;
         margin: 0.3rem;
+    }
+}
+
+/* Garantir visibilidade do botão de reabertura em todas as telas */
+.reopen-hologram-button {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 255, 136, 0.2);
+    border: 2px solid #00ff88;
+    color: #00ff88;
+    padding: 0.6rem 1.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    z-index: 150;
+}
+
+.reopen-hologram-button:hover {
+    background: rgba(0, 255, 136, 0.4);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    transform: translateY(-2px);
+}
+
+/* Estilos para os botões de controle */
+#control-buttons-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 150;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    #control-buttons-container {
+        top: 5px;
+        right: 5px;
+    }
+    
+    .hologram-control, .voice-control {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
     }
 }
 

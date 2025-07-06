@@ -552,7 +552,7 @@ export class DrTuringManager {
      * @param {string} text - Texto a ser falado
      * @param {number} duration - Duração em ms (usado para animações)
      */
-    speak3D(text, duration = 5000) {
+    async speak3D(text, duration = 5000) {
         if (!this.model) return;
 
         this.speechSystem.isPlaying = true;
@@ -568,6 +568,18 @@ export class DrTuringManager {
         // Usar síntese de voz em vez de balões de fala
         if (window.speakText) {
             window.speakText(text, 'pt-BR', 1.0, 1.1);
+        }
+        
+        // Forçar voz feminina mesmo que seleção automática falhe
+        const currentVoice = window.speechSynthesis.getVoices().find(v => 
+            v.name === utterance.voice?.name
+        );
+        
+        if (!currentVoice || 
+            (!currentVoice.name.includes('Francisca') && 
+             !currentVoice.name.includes('Maria') && 
+             currentVoice.gender !== 'female')) {
+            utterance.voice = this.app.voiceSystem.selectBestVoice(window.speechSynthesis.getVoices(), 'pt-BR');
         }
         
         // Voltar ao normal após duração

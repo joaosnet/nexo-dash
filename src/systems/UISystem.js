@@ -2,6 +2,8 @@
  * UISystem - Sistema de interface do usuário
  * Gerencia painéis holográficos e interações da UI
  */
+import { UIStyles } from '../utils/UIStyles.js';
+
 export class UISystem {
     constructor(app) {
         this.app = app;
@@ -12,6 +14,8 @@ export class UISystem {
             panelActions: null
         };
         this.isVisible = false;
+        this.uiStyles = new UIStyles();
+        this.controlButtonsContainer = null; // Add this line
     }
 
     /**
@@ -19,8 +23,10 @@ export class UISystem {
      * @returns {Promise<void>}
      */
     async initialize() {
+        this.uiStyles.injectStyles();
         this.setupElements();
         this.setupEventListeners();
+        this.createControlButtonsContainer(); // Add this line
         this.createHologramControlButton();
         this.createVoiceControlButton();
         console.log('✅ Sistema de UI inicializado');
@@ -51,93 +57,25 @@ export class UISystem {
         const mainPanel = document.createElement('div');
         mainPanel.id = 'main-panel';
         mainPanel.className = 'holographic-panel';
-        mainPanel.style.cssText = `
-            position: fixed;
-            top: 50%;
-            right: 2rem;
-            transform: translateY(-50%);
-            width: 450px;
-            max-width: calc(100vw - 4rem);
-            max-height: calc(100vh - 4rem);
-            background: rgba(0, 255, 136, 0.1);
-            border: 2px solid rgba(0, 255, 136, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(15px);
-            padding: 0;
-            color: #00ff88;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2), inset 0 0 30px rgba(0, 255, 136, 0.05);
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(-50%) translateX(100px);
-            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            display: none;
-            overflow: hidden;
-        `;
+        mainPanel.style.cssText = this.uiStyles.getMainPanelStyles();
 
         // Criar título do painel
         const panelTitle = document.createElement('div');
         panelTitle.id = 'panel-title';
         panelTitle.className = 'panel-title';
-        panelTitle.style.cssText = `
-            color: #00ccff;
-            margin: 0;
-            padding: 20px 25px 15px 25px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            text-shadow: 0 0 15px #00ccff;
-            text-align: center;
-            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-            background: rgba(0, 255, 136, 0.05);
-        `;
+        panelTitle.style.cssText = this.uiStyles.getPanelTitleStyles();
 
         // Criar conteúdo do painel
         const panelContent = document.createElement('div');
         panelContent.id = 'panel-content';
         panelContent.className = 'panel-content';
-        panelContent.style.cssText = `
-            padding: 25px;
-            overflow-y: auto;
-            max-height: 400px;
-            flex: 1;
-            background: rgba(0, 0, 0, 0.2);
-        `;
-
-        // Estilo do scroll personalizado
-        const scrollStyle = document.createElement('style');
-        scrollStyle.textContent = `
-            .panel-content::-webkit-scrollbar {
-                width: 8px;
-            }
-            .panel-content::-webkit-scrollbar-track {
-                background: rgba(0, 255, 136, 0.1);
-                border-radius: 4px;
-            }
-            .panel-content::-webkit-scrollbar-thumb {
-                background: rgba(0, 255, 136, 0.3);
-                border-radius: 4px;
-            }
-            .panel-content::-webkit-scrollbar-thumb:hover {
-                background: rgba(0, 255, 136, 0.5);
-            }
-        `;
-        document.head.appendChild(scrollStyle);
+        panelContent.style.cssText = this.uiStyles.getPanelContentStyles();
 
         // Criar área de ações/botões
         const panelActions = document.createElement('div');
         panelActions.id = 'panel-actions';
         panelActions.className = 'panel-actions';
-        panelActions.style.cssText = `
-            padding: 20px 25px;
-            border-top: 1px solid rgba(0, 255, 136, 0.2);
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
-            background: rgba(0, 255, 136, 0.05);
-        `;
+        panelActions.style.cssText = this.uiStyles.getPanelActionsStyles();
 
         // Montar estrutura
         mainPanel.appendChild(panelTitle);
@@ -150,169 +88,24 @@ export class UISystem {
         this.elements.panelTitle = panelTitle;
         this.elements.panelContent = panelContent;
         this.elements.panelActions = panelActions;
+    }
 
-        // Criar estilos globais para botões holográficos
-        const buttonStyles = document.createElement('style');
-        buttonStyles.textContent = `
-            .holographic-button {
-                background: rgba(0, 255, 136, 0.2);
-                border: 2px solid #00ff88;
-                color: #00ff88;
-                padding: 12px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 1rem;
-                font-weight: bold;
-                font-family: inherit;
-                margin: 0;
-                transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-                box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-                text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-                position: relative;
-                overflow: hidden;
-                min-width: 120px;
-                text-align: center;
-            }
-
-            .holographic-button::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-                transition: left 0.5s;
-            }
-
-            .holographic-button:hover {
-                background: rgba(0, 255, 136, 0.3);
-                box-shadow: 0 0 25px rgba(0, 255, 136, 0.6), inset 0 0 20px rgba(0, 255, 136, 0.1);
-                transform: translateY(-2px) scale(1.02);
-                border-color: #00ccff;
-                color: #00ccff;
-                text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
-            }
-
-            .holographic-button:hover::before {
-                left: 100%;
-            }
-
-            .holographic-button:active {
-                transform: translateY(0) scale(0.98);
-                box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
-            }
-
-            .holographic-panel h1, .holographic-panel h2, .holographic-panel h3 {
-                color: #00ccff;
-                text-shadow: 0 0 10px #00ccff;
-                margin-top: 0;
-            }
-
-            .holographic-panel p {
-                margin-bottom: 15px;
-                text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
-            }
-
-            .holographic-panel ul {
-                margin: 15px 0;
-                padding-left: 20px;
-            }
-
-            .holographic-panel li {
-                margin-bottom: 8px;
-                text-shadow: 0 0 3px rgba(0, 255, 136, 0.2);
-            }
-
-            .holographic-panel li::marker {
-                color: #00ccff;
-            }
-
-            .holographic-panel code {
-                background: rgba(0, 255, 136, 0.1);
-                color: #00ccff;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: 'Courier New', monospace;
-                border: 1px solid rgba(0, 255, 136, 0.2);
-            }
-
-            .holographic-panel strong {
-                color: #00ccff;
-                text-shadow: 0 0 8px rgba(0, 204, 255, 0.5);
-            }
-
-            .holographic-panel em {
-                color: #88ffcc;
-                font-style: italic;
-            }
-
-            /* Responsividade */
-            @media (max-width: 768px) {
-                #main-panel {
-                    right: 1rem !important;
-                    left: 1rem !important;
-                    width: auto !important;
-                    transform: translateY(-50%) !important;
-                }
-                .holographic-button {
-                    padding: 10px 16px;
-                    font-size: 0.9rem;
-                    min-width: 100px;
-                }
-                .panel-title {
-                    font-size: 1.2rem !important;
-                    padding: 15px 20px 12px 20px !important;
-                }
-                .panel-content {
-                    padding: 20px !important;
-                    font-size: 1rem !important;
-                }
-                /* Botão do holograma em mobile */
-                #hologram-control-btn {
-                    bottom: 10px !important;
-                    left: 10px !important;
-                    padding: 10px 16px !important;
-                    font-size: 0.9rem !important;
-                    min-width: 140px !important;
-                }
-                /* Botão de controle de voz em mobile */
-                #voice-control-btn {
-                    bottom: 10px !important;
-                    right: 10px !important;
-                    padding: 10px 16px !important;
-                    font-size: 0.9rem !important;
-                    min-width: 140px !important;
-                }
-            }
-
-            @media (max-width: 480px) {
-                .panel-actions {
-                    flex-direction: column;
-                    align-items: stretch;
-                }
-                .holographic-button {
-                    width: 100%;
-                }
-                /* Botão do holograma em mobile pequeno */
-                #hologram-control-btn {
-                    bottom: 70px !important;
-                    left: 50% !important;
-                    transform: translateX(-50%) !important;
-                    width: calc(50% - 25px) !important;
-                    max-width: 150px !important;
-                }
-                /* Botão de controle de voz em mobile pequeno */
-                #voice-control-btn {
-                    bottom: 10px !important;
-                    left: 50% !important;
-                    transform: translateX(-50%) !important;
-                    width: calc(50% - 25px) !important;
-                    max-width: 150px !important;
-                }
-            }
+    /**
+     * Cria container para botões de controle
+     */
+    createControlButtonsContainer() {
+        this.controlButtonsContainer = document.createElement('div');
+        this.controlButtonsContainer.id = 'control-buttons-container';
+        this.controlButtonsContainer.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 150;
         `;
-        document.head.appendChild(buttonStyles);
+        document.body.appendChild(this.controlButtonsContainer);
     }
 
     /**
@@ -414,6 +207,25 @@ export class UISystem {
             this.elements.mainPanel.style.display = 'none';
             this.isVisible = false;
             console.log('📱 Painel ocultado');
+            
+            // Adicionar botão de reabertura
+            if (!document.getElementById('reopen-hologram-button')) {
+                const reopenBtn = document.createElement('button');
+                reopenBtn.id = 'reopen-hologram-button';
+                reopenBtn.className = 'reopen-hologram-button holographic-button';
+                reopenBtn.textContent = 'Abrir Painel';
+                reopenBtn.onclick = () => this.showPanel(
+                    this.elements.panelTitle?.textContent || 'Nexo Dash',
+                    this.elements.panelContent?.innerHTML || '',
+                    Array.from(this.elements.panelActions?.children || [])
+                        .filter(b => b.id !== 'reopen-hologram-button')
+                        .map(b => ({
+                            label: b.textContent,
+                            callback: b.onclick
+                        }))
+                );
+                document.body.appendChild(reopenBtn);
+            }
         });
     }
 
@@ -574,39 +386,12 @@ export class UISystem {
      * Cria o botão de controle do holograma da Dra. Turing
      */
     createHologramControlButton() {
-        // Verificar se o botão já existe
-        if (document.getElementById('hologram-control-btn')) {
-            return;
-        }
+        if (document.getElementById('hologram-control-btn')) return;
 
         const hologramButton = document.createElement('button');
         hologramButton.id = 'hologram-control-btn';
         hologramButton.className = 'holographic-button hologram-control';
         hologramButton.innerHTML = '👩‍🔬 Mostrar Holograma';
-
-        // Estilos específicos para o botão do holograma
-        hologramButton.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 255, 136, 0.2);
-            border: 2px solid #00ff88;
-            color: #00ff88;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-            z-index: 1001;
-            min-width: 160px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        `;
 
         // Event listener para toggle do holograma
         hologramButton.addEventListener('click', () => {
@@ -614,149 +399,111 @@ export class UISystem {
             if (threeSystem && threeSystem.drTuringManager) {
                 const isVisible = threeSystem.drTuringManager.toggleHologram();
                 this.updateHologramButtonState(isVisible);
-
-                // Exibir notificação
-                if (isVisible) {
-                    this.showNotification('Dra. Turing apareceu!', 'success', 2000);
-                } else {
-                    this.showNotification('Dra. Turing desapareceu!', 'info', 2000);
-                }
+                
+                const message = isVisible ? 'Dra. Turing apareceu!' : 'Dra. Turing desapareceu!';
+                const type = isVisible ? 'success' : 'info';
+                this.showNotification(message, type, 2000);
             }
         });
 
-        // Efeitos hover
-        hologramButton.addEventListener('mouseenter', () => {
-            hologramButton.style.transform = 'translateY(-2px) scale(1.05)';
-            hologramButton.style.boxShadow = '0 5px 25px rgba(0, 255, 136, 0.6)';
-        });
-
-        hologramButton.addEventListener('mouseleave', () => {
-            hologramButton.style.transform = 'translateY(0) scale(1)';
-        });
-
-        // Adicionar ao DOM
-        document.body.appendChild(hologramButton);
-
-        // Aplicar responsividade
-        this.adjustResponsiveness();
-
+        this.addButtonHoverEffects(hologramButton);
+        // Replace document.body.appendChild with:
+        if (this.controlButtonsContainer) {
+            this.controlButtonsContainer.appendChild(hologramButton);
+        } else {
+            document.body.appendChild(hologramButton);
+        }
         console.log('🎮 Botão de controle do holograma criado');
     }
 
     /**
      * Cria o botão de controle da voz (ligar/desligar)
+     * Integrado com o VoiceSystem global
      */
     createVoiceControlButton() {
-        // Verificar se o botão já existe
-        if (document.getElementById('voice-control-btn')) {
-            return;
-        }
+        if (document.getElementById('voice-control-btn')) return;
 
         const voiceControlButton = document.createElement('button');
         voiceControlButton.id = 'voice-control-btn';
         voiceControlButton.className = 'holographic-button voice-control';
         voiceControlButton.innerHTML = '🔊 Desligar Voz';
-        
-        // Estilos específicos para o botão de controle de voz
-        voiceControlButton.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 200, 255, 0.2);
-            border: 2px solid #00ccff;
-            color: #00ccff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 0 0 15px rgba(0, 200, 255, 0.3);
-            text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
-            z-index: 1001;
-            min-width: 140px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        `;
 
-        // Selecionar voz feminina automaticamente
-        const selectFemaleVoice = () => {
-            const voices = window.speechSynthesis.getVoices();
-            return voices.find(voice => voice.lang === 'pt-BR' && voice.name.toLowerCase().includes('feminina')) || voices[0];
-        };
-
-        // Função para alternar estado da voz
-        const toggleVoice = (enabled) => {
-            const styles = enabled ? {
-                text: '🔊 Desligar Voz',
-                background: 'rgba(0, 200, 255, 0.2)',
-                borderColor: '#00ccff',
-                color: '#00ccff',
-                boxShadow: '0 0 15px rgba(0, 200, 255, 0.3)',
-                notification: 'Voz ligada',
-                notificationType: 'success'
-            } : {
-                text: '🔇 Ligar Voz',
-                background: 'rgba(255, 71, 87, 0.2)',
-                borderColor: '#ff4757',
-                color: '#ff4757',
-                boxShadow: '0 0 15px rgba(255, 71, 87, 0.3)',
-                notification: 'Voz desligada',
-                notificationType: 'info'
-            };
-
-            voiceControlButton.innerHTML = styles.text;
-            voiceControlButton.style.background = styles.background;
-            voiceControlButton.style.borderColor = styles.borderColor;
-            voiceControlButton.style.color = styles.color;
-            voiceControlButton.style.boxShadow = styles.boxShadow;
-
-            window.voiceEnabled = enabled;
-
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                if (enabled && window.speakText) {
-                    const femaleVoice = selectFemaleVoice();
-                    setTimeout(() => {
-                        const utterance = new SpeechSynthesisUtterance('Voz reativada!');
-                        utterance.voice = femaleVoice;
-                        utterance.lang = 'pt-BR';
-                        window.speechSynthesis.speak(utterance);
-                    }, 100);
+        // Função para alternar estado da voz (usa VoiceSystem)
+        const toggleVoice = () => {
+            const currentState = window.voiceEnabled;
+            const newState = !currentState;
+            
+            if (window.voiceSystem && window.voiceSystem.setEnabled) {
+                window.voiceSystem.setEnabled(newState);
+            } else {
+                window.voiceEnabled = newState;
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
                 }
             }
 
-            this.showNotification(styles.notification, styles.notificationType, 2000);
+            this.updateVoiceButtonState(newState);
+            
+            const message = newState ? 'Voz ligada' : 'Voz desligada';
+            const type = newState ? 'success' : 'info';
+            this.showNotification(message, type, 2000);
         };
 
-        // Event listener para toggle da voz
-        voiceControlButton.addEventListener('click', () => toggleVoice(!window.voiceEnabled));
+        voiceControlButton.addEventListener('click', toggleVoice);
+        this.addButtonHoverEffects(voiceControlButton);
+        // Replace document.body.appendChild with:
+        if (this.controlButtonsContainer) {
+            this.controlButtonsContainer.appendChild(voiceControlButton);
+        } else {
+            document.body.appendChild(voiceControlButton);
+        }
 
-        // Efeitos hover
-        voiceControlButton.addEventListener('mouseenter', () => {
-            voiceControlButton.style.transform = 'translateY(-2px) scale(1.05)';
-            voiceControlButton.style.boxShadow = window.voiceEnabled 
-                ? '0 5px 25px rgba(0, 200, 255, 0.6)'
-                : '0 5px 25px rgba(255, 71, 87, 0.6)';
+        console.log('🎤 Botão de controle de voz criado (integrado com VoiceSystem)');
+    }
+
+    /**
+     * Adiciona efeitos hover padrão a um botão
+     * @param {HTMLElement} button - Elemento do botão
+     */
+    addButtonHoverEffects(button) {
+        button.addEventListener('mouseenter', () => {
+            button.style.transform = 'translateY(-2px) scale(1.05)';
+            button.style.boxShadow = '0 5px 25px rgba(0, 255, 136, 0.6)';
         });
 
-        voiceControlButton.addEventListener('mouseleave', () => {
-            voiceControlButton.style.transform = 'translateY(0) scale(1)';
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateY(0) scale(1)';
+            button.style.boxShadow = '';
         });
+    }
 
-        // Adicionar ao DOM
-        document.body.appendChild(voiceControlButton);
+    /**
+     * Atualiza o estado visual do botão de controle de voz
+     * @param {boolean} enabled - Se a voz está habilitada
+     */
+    updateVoiceButtonState(enabled) {
+        const voiceButton = document.getElementById('voice-control-btn');
+        if (!voiceButton) return;
 
-        // Configurar estado inicial da voz como ativado
-        window.voiceEnabled = true;
+        const styles = enabled ? {
+            text: '🔊 Desligar Voz',
+            background: 'rgba(0, 200, 255, 0.2)',
+            borderColor: '#00ccff',
+            color: '#00ccff',
+            boxShadow: '0 0 15px rgba(0, 200, 255, 0.3)'
+        } : {
+            text: '🔇 Ligar Voz',
+            background: 'rgba(255, 71, 87, 0.2)',
+            borderColor: '#ff4757',
+            color: '#ff4757',
+            boxShadow: '0 0 15px rgba(255, 71, 87, 0.3)'
+        };
 
-        // Aplicar responsividade e adicionar listener para redimensionamento
-        this.adjustResponsiveness();
-        window.addEventListener('resize', () => this.adjustResponsiveness());
-
-        console.log('🎤 Botão de controle de voz criado');
+        voiceButton.innerHTML = styles.text;
+        voiceButton.style.background = styles.background;
+        voiceButton.style.borderColor = styles.borderColor;
+        voiceButton.style.color = styles.color;
+        voiceButton.style.boxShadow = styles.boxShadow;
     }
 
     /**
@@ -773,12 +520,14 @@ export class UISystem {
             hologramButton.style.borderColor = '#ff4757';
             hologramButton.style.color = '#ff4757';
             hologramButton.style.boxShadow = '0 0 15px rgba(255, 71, 87, 0.3)';
+            hologramButton.style.display = 'none'; // Hide button when hologram is visible
         } else {
             // Holograma oculto - atualizar texto do botão
             hologramButton.innerHTML = '👩‍🔬 Mostrar Holograma';
             hologramButton.style.borderColor = '#00ff88';
             hologramButton.style.color = '#00ff88';
             hologramButton.style.boxShadow = '0 0 15px rgba(0, 255, 136, 0.3)';
+            hologramButton.style.display = 'block';
         }
 
         // Garantir que o botão esteja visível
@@ -791,18 +540,20 @@ export class UISystem {
     dispose() {
         this.hidePanel();
         
-        // Remover botão de controle do holograma
+        // Remover botões de controle
         const hologramButton = document.getElementById('hologram-control-btn');
-        if (hologramButton && hologramButton.parentNode) {
-            hologramButton.parentNode.removeChild(hologramButton);
-        }
-        
-        // Remover botão de controle de voz
         const voiceControlButton = document.getElementById('voice-control-btn');
-        if (voiceControlButton && voiceControlButton.parentNode) {
-            voiceControlButton.parentNode.removeChild(voiceControlButton);
-        }
         
+        [hologramButton, voiceControlButton].forEach(button => {
+            if (button && button.parentNode) {
+                button.parentNode.removeChild(button);
+            }
+        });
+        
+        // Remover estilos
+        this.uiStyles.removeStyles();
+        
+        // Limpar referências
         this.elements = {
             mainPanel: null,
             panelTitle: null,
@@ -810,49 +561,24 @@ export class UISystem {
             panelActions: null
         };
         this.isVisible = false;
+        
+        console.log('🧹 Sistema UI limpo');
     }
 
     /**
-     * Ajustar responsividade para telas pequenas
+     * Cria o controle de voz
      */
-    adjustResponsiveness() {
-        const hologramButton = document.getElementById('hologram-control-btn');
-        const voiceControlButton = document.getElementById('voice-control-btn');
-
-        if (window.innerWidth <= 480) {
-            if (hologramButton) {
-                hologramButton.style.bottom = '90px';
-                hologramButton.style.left = '50%';
-                hologramButton.style.transform = 'translateX(-50%)';
-                hologramButton.style.width = 'calc(80% - 20px)';
-                hologramButton.style.maxWidth = '200px';
-                hologramButton.style.right = 'auto';
+    createVoiceControl() {
+        const voiceButton = this.createControlButton('🎤', () => {
+            if (!this.app.voiceSystem.initialized) {
+                this.app.voiceSystem.setupVoiceSystem();
             }
-
-            if (voiceControlButton) {
-                voiceControlButton.style.bottom = '20px';
-                voiceControlButton.style.left = '50%';
-                voiceControlButton.style.transform = 'translateX(-50%)';
-                voiceControlButton.style.width = 'calc(80% - 20px)';
-                voiceControlButton.style.maxWidth = '200px';
-                voiceControlButton.style.right = 'auto';
-            }
-        } else {
-            if (hologramButton) {
-                hologramButton.style.bottom = '20px';
-                hologramButton.style.left = '20px';
-                hologramButton.style.transform = 'none';
-                hologramButton.style.width = 'auto';
-                hologramButton.style.maxWidth = 'none';
-            }
-
-            if (voiceControlButton) {
-                voiceControlButton.style.bottom = '20px';
-                voiceControlButton.style.right = '20px';
-                voiceControlButton.style.transform = 'none';
-                voiceControlButton.style.width = 'auto';
-                voiceControlButton.style.maxWidth = 'none';
-            }
-        }
+            this.app.voiceSystem.setEnabled(!this.app.voiceSystem.isVoiceEnabled());
+            this.showNotification(`Voz ${this.app.voiceSystem.isVoiceEnabled() ? 'ativada' : 'desativada'}`);
+            
+            // Forçar primeiro clique como interação do usuário
+            document.body.click();
+        });
+        return voiceButton;
     }
 }
