@@ -28,7 +28,7 @@ export class EnvironmentManager {
             console.log('🌍 Inicializando ambiente 3D...');
             
             this.createLaboratoryPlatform();
-            await this.loadLaboratoryModels();
+            // Modelos carregados sob demanda, não na inicialização
             this.createDecorativeElements();
             this.setupInteractionSystem();
             
@@ -164,6 +164,85 @@ export class EnvironmentManager {
 
         await Promise.allSettled(loadPromises);
         console.log('🏗️ Modelos do laboratório carregados');
+    }
+
+    /**
+     * Carrega apenas os modelos básicos do laboratório (chamado no Módulo 1)
+     * @returns {Promise<void>}
+     */
+    async loadBasicLabModels() {
+        if (!window.THREE.GLTFLoader) {
+            console.warn('⚠️ GLTFLoader não disponível');
+            return;
+        }
+
+        console.log('🏭 Carregando modelos básicos do laboratório...');
+
+        const basicModels = [
+            {
+                name: 'server',
+                path: './assets/servidor/scene.gltf',
+                position: { x: 0, y: 1.5, z: 0 },
+                scale: { x: 0.8, y: 0.8, z: 0.8 },
+                replaces: 'laboratory-core'
+            }
+        ];
+
+        const loadPromises = basicModels.map(modelConfig => 
+            this.loadSingleModel(modelConfig).catch(error => {
+                console.warn(`⚠️ Erro ao carregar modelo ${modelConfig.name}:`, error);
+                return null;
+            })
+        );
+
+        await Promise.allSettled(loadPromises);
+        console.log('✅ Modelos básicos carregados');
+    }
+
+    /**
+     * Carrega modelos avançados do laboratório (chamado em módulos posteriores)
+     * @returns {Promise<void>}
+     */
+    async loadAdvancedLabModels() {
+        if (!window.THREE.GLTFLoader) {
+            console.warn('⚠️ GLTFLoader não disponível');
+            return;
+        }
+
+        console.log('🚀 Carregando modelos avançados do laboratório...');
+
+        const advancedModels = [
+            {
+                name: 'gpu',
+                path: './assets/gpu_nvidia/Pbr/base_basic_pbr.glb',
+                position: { x: 6, y: 1, z: -3 },
+                scale: { x: 1.5, y: 1.5, z: 1.5 },
+                rotation: { y: Math.PI / 4 }
+            },
+            {
+                name: 'python-icon',
+                path: './assets/icon_3d_python/Pbr/base_basic_pbr.glb',
+                position: { x: -6, y: 2, z: -3 },
+                scale: { x: 1.2, y: 1.2, z: 1.2 }
+            },
+            {
+                name: 'toolbox',
+                path: './assets/tool_box/Pbr/base_basic_pbr.glb',
+                position: { x: 6, y: 0.5, z: 3 },
+                scale: { x: 1.8, y: 1.8, z: 1.8 },
+                rotation: { y: -Math.PI / 6 }
+            }
+        ];
+
+        const loadPromises = advancedModels.map(modelConfig => 
+            this.loadSingleModel(modelConfig).catch(error => {
+                console.warn(`⚠️ Erro ao carregar modelo ${modelConfig.name}:`, error);
+                return null;
+            })
+        );
+
+        await Promise.allSettled(loadPromises);
+        console.log('✅ Modelos avançados carregados');
     }
 
     /**

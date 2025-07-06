@@ -247,8 +247,12 @@ export class ModuleSystem {
         if (threeSystem && threeSystem.environmentManager) {
             console.log('✅ Carregando blueprint automaticamente...');
             
-            // Carregar blueprint 3D automaticamente
-            setTimeout(() => {
+            // Carregar modelos básicos primeiro, depois blueprint
+            setTimeout(async () => {
+                // Carregar servidor primeiro (modelo básico)
+                await threeSystem.environmentManager.loadBasicLabModels();
+                
+                // Depois carregar blueprint 3D
                 threeSystem.environmentManager.createProjectStructure();
                 
                 // Focar câmera após criação
@@ -266,7 +270,17 @@ export class ModuleSystem {
      */
     executeServerCoreEffects() {
         console.log('🔧 Executando efeitos do núcleo do servidor...');
-        // Adicionar efeitos específicos do módulo 2
+        
+        // Carregar modelos avançados do laboratório no módulo 2
+        const threeSystem = this.app.getSystem('three');
+        if (threeSystem && threeSystem.environmentManager) {
+            console.log('🚀 Carregando modelos avançados do laboratório...');
+            
+            setTimeout(async () => {
+                await threeSystem.environmentManager.loadAdvancedLabModels();
+                console.log('✅ Modelos avançados carregados com sucesso!');
+            }, 1000);
+        }
     }
 
     /**
@@ -286,19 +300,25 @@ export class ModuleSystem {
         if (threeSystem && threeSystem.environmentManager) {
             console.log('✅ Sistema Three.js encontrado, carregando blueprint...');
             
-            // Criar a estrutura do projeto 3D
-            threeSystem.environmentManager.createProjectStructure();
-            
-            // Focar câmera no blueprint após um pequeno delay
-            setTimeout(() => {
-                threeSystem.environmentManager.focusCameraOnBlueprint();
-                console.log('📷 Blueprint 3D carregado e câmera posicionada');
+            // Carregar modelos básicos primeiro, depois blueprint
+            setTimeout(async () => {
+                // Carregar servidor primeiro (modelo básico)
+                await threeSystem.environmentManager.loadBasicLabModels();
+                
+                // Criar a estrutura do projeto 3D
+                threeSystem.environmentManager.createProjectStructure();
+                
+                // Focar câmera no blueprint após um pequeno delay
+                setTimeout(() => {
+                    threeSystem.environmentManager.focusCameraOnBlueprint();
+                    console.log('📷 Blueprint 3D carregado e câmera posicionada');
+                }, 500);
+                
+                // Avançar para o próximo passo
+                setTimeout(() => {
+                    this.nextStep();
+                }, 3000);
             }, 500);
-            
-            // Avançar para o próximo passo
-            setTimeout(() => {
-                this.nextStep();
-            }, 3000);
         } else {
             console.error('❌ Sistema Three.js ou EnvironmentManager não encontrado');
         }

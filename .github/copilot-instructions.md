@@ -5,8 +5,6 @@
 
 <regras_de_planejamento>
 - Apos cada implementação teste o que foi feito.
-- Sempre use ouse o playwright + https://www.perplexity.ai/search/new?q= para buscar informações
-- Sempre use ouse o playwright + https://gemini.google.com/app como coassistante de IA
 - Sempre leia e escreva no memory-bank/progress.md antes de escrever qualquer código.
 - Sempre leia memory-bank/@architecture.md antes de escrever qualquer código. Inclua todo o esquema do banco de dados.
 - Sempre leia memory-bank/@game-design-document.md antes de escrever qualquer código.
@@ -57,9 +55,3 @@ A aplicação é construída com módulos JavaScript (ES6) e segue uma arquitetu
 - **`ModuleDefinitions.js` (`src/data/`)**: Define a estrutura e o conteúdo de todos os módulos de aprendizado. Ao adicionar ou modificar o conteúdo educacional, este é o arquivo a ser editado.
 - **Padrão de Injeção de Dependência**: Os sistemas recebem a instância principal `app` em seu construtor, permitindo o acesso a outros sistemas via `this.app.getSystem('systemName')`.
 - **Exemplos de Three.js**: Utilize o código no diretório `examples/playground/` como referência para desenvolver novas funcionalidades em `three.js`.
-
-## Fluxo de Trabalho de Desenvolvimento
-
-Para testar ou executar o projeto localmente, o servidor web simples sempre está funcionando, não inicie-o novamente.
-
-O projeto é uma aplicação de página única (`index.html`) e deve ser aberto com playwright e não requer um processo de build complexo. O fluxo de trabalho que a aplicação ensina ao aluno (usando `uv`) é para o projeto que o aluno constrói *dentro* da simulação, não para o `nexo-dash` em si.
