@@ -55,12 +55,6 @@ export class DrTuringManager {
                 this.lighting.visible = true;
             }
             
-            // Notificar UISystem sobre mudança
-            const uiSystem = this.threeSystem.app.getSystem('ui');
-            if (uiSystem) {
-                uiSystem.updateHologramButtonState(true);
-            }
-            
             console.log('👩‍🔬 Holograma da Dra. Turing mostrado');
         }
     }
@@ -73,12 +67,6 @@ export class DrTuringManager {
             this.model.visible = false;
             if (this.lighting) {
                 this.lighting.visible = false;
-            }
-            
-            // Notificar UISystem sobre mudança
-            const uiSystem = this.threeSystem.app.getSystem('ui');
-            if (uiSystem) {
-                uiSystem.updateHologramButtonState(false);
             }
             
             console.log('👩‍🔬 Holograma da Dra. Turing ocultado');
