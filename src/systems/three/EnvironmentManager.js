@@ -276,6 +276,9 @@ export class EnvironmentManager {
                     
                     model.name = `laboratory-${config.name}`;
                     
+                    // Desabilitar animações por padrão
+                    model.userData.animationDisabled = true;
+                    
                     // Configurar materiais e sombras
                     this.setupModelMaterials(model, config.name);
                     
@@ -354,52 +357,102 @@ export class EnvironmentManager {
      * @param {string} modelName - Nome do modelo
      */
     addModelAnimation(model, modelName) {
+        // Store animation function to allow stopping later
         const animations = {
             gpu: () => {
+                let animationId;
                 const animateGPU = () => {
-                    if (model && model.parent) {
+                    if (model && model.parent && !model.userData.animationStopped) {
                         model.rotation.y += 0.015;
                         model.position.y = 1 + Math.sin(Date.now() * 0.0012) * 0.15;
-                        requestAnimationFrame(animateGPU);
+                        animationId = requestAnimationFrame(animateGPU);
                     }
+                };
+                model.userData.stopAnimation = () => {
+                    model.userData.animationStopped = true;
+                    if (animationId) cancelAnimationFrame(animationId);
                 };
                 animateGPU();
             },
             'python-icon': () => {
+                let animationId;
                 const animatePython = () => {
-                    if (model && model.parent) {
+                    if (model && model.parent && !model.userData.animationStopped) {
                         model.rotation.y += 0.008;
                         model.position.y = 2 + Math.sin(Date.now() * 0.0015) * 0.12;
-                        requestAnimationFrame(animatePython);
+                        animationId = requestAnimationFrame(animatePython);
                     }
+                };
+                model.userData.stopAnimation = () => {
+                    model.userData.animationStopped = true;
+                    if (animationId) cancelAnimationFrame(animationId);
                 };
                 animatePython();
             },
             toolbox: () => {
+                let animationId;
                 const animateToolbox = () => {
-                    if (model && model.parent) {
+                    if (model && model.parent && !model.userData.animationStopped) {
                         model.rotation.y += 0.005;
-                        requestAnimationFrame(animateToolbox);
+                        animationId = requestAnimationFrame(animateToolbox);
                     }
+                };
+                model.userData.stopAnimation = () => {
+                    model.userData.animationStopped = true;
+                    if (animationId) cancelAnimationFrame(animationId);
                 };
                 animateToolbox();
             },
             server: () => {
+                let animationId;
                 const animateServer = () => {
-                    if (model && model.parent) {
+                    if (model && model.parent && !model.userData.animationStopped) {
                         model.rotation.y += 0.01;
                         model.position.y = 1.5 + Math.sin(Date.now() * 0.0008) * 0.1;
-                        requestAnimationFrame(animateServer);
+                        animationId = requestAnimationFrame(animateServer);
                     }
+                };
+                model.userData.stopAnimation = () => {
+                    model.userData.animationStopped = true;
+                    if (animationId) cancelAnimationFrame(animationId);
                 };
                 animateServer();
             }
         };
 
+        // Inicialmente, não inicie animações automaticamente
+        // As animações devem ser iniciadas apenas quando necessário
         const animation = animations[modelName];
-        if (animation) {
+        if (animation && !model.userData.animationDisabled) {
             animation();
         }
+    }
+
+    /**
+     * Para todas as animações dos modelos
+     */
+    stopAllModelAnimations() {
+        this.laboratoryElements.forEach((model, name) => {
+            if (model.userData && model.userData.stopAnimation) {
+                model.userData.stopAnimation();
+                console.log(`🛑 Animação do modelo ${name} parada`);
+            }
+        });
+    }
+
+    /**
+     * Inicia animações dos modelos especificados
+     * @param {Array<string>} modelNames - Nomes dos modelos para animar
+     */
+    startModelAnimations(modelNames = []) {
+        modelNames.forEach(name => {
+            const model = this.laboratoryElements.get(name);
+            if (model) {
+                model.userData.animationStopped = false;
+                this.addModelAnimation(model, name);
+                console.log(`▶️ Animação do modelo ${name} iniciada`);
+            }
+        });
     }
 
     /**
@@ -609,19 +662,72 @@ export class EnvironmentManager {
      * @param {number} index - Índice do item
      */
     createBlueprintItem(item, index) {
-        // Geometria baseada no tipo
-        const size = item.type === 'folder' ? [2, 1.5, 2] : [1.5, 2, 0.5];
-        const geometry = new THREE.BoxGeometry(...size);
+        // Criar representação mais realista baseada no tipo
+        let mesh;
         
-        const material = new THREE.MeshPhongMaterial({
-            color: item.color,
-            transparent: true,
-            opacity: 0.7,
-            emissive: item.color,
-            emissiveIntensity: 0.15
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
+        if (item.type === 'folder') {
+            // Pasta como um grupo de elementos
+            const group = new THREE.Group();
+            
+            // Base da pasta
+            const baseGeometry = new THREE.BoxGeometry(2, 0.2, 1.5);
+            const baseMaterial = new THREE.MeshPhongMaterial({
+                color: item.color,
+                transparent: true,
+                opacity: 0.8
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            group.add(base);
+            
+            // Tampa da pasta
+            const lidGeometry = new THREE.BoxGeometry(2.2, 0.1, 1.2);
+            const lid = new THREE.Mesh(lidGeometry, baseMaterial);
+            lid.position.set(0, 0.15, -0.2);
+            group.add(lid);
+            
+            // Indicador de conteúdo (pequenos cubos)
+            for (let i = 0; i < 3; i++) {
+                const contentGeometry = new THREE.BoxGeometry(0.3, 0.05, 0.3);
+                const contentMaterial = new THREE.MeshPhongMaterial({
+                    color: item.color,
+                    transparent: true,
+                    opacity: 0.6,
+                    emissive: item.color,
+                    emissiveIntensity: 0.2
+                });
+                const content = new THREE.Mesh(contentGeometry, contentMaterial);
+                content.position.set(-0.6 + i * 0.6, 0.12, 0);
+                group.add(content);
+            }
+            
+            mesh = group;
+        } else {
+            // Arquivo como um documento
+            const geometry = new THREE.BoxGeometry(1.5, 2, 0.1);
+            const material = new THREE.MeshPhongMaterial({
+                color: item.color,
+                transparent: true,
+                opacity: 0.8,
+                emissive: item.color,
+                emissiveIntensity: 0.15
+            });
+            
+            mesh = new THREE.Mesh(geometry, material);
+            
+            // Adicionar "linhas" no arquivo
+            for (let i = 0; i < 4; i++) {
+                const lineGeometry = new THREE.BoxGeometry(1.2, 0.02, 0.02);
+                const lineMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x000000,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const line = new THREE.Mesh(lineGeometry, lineMaterial);
+                line.position.set(0, 0.6 - i * 0.3, 0.06);
+                mesh.add(line);
+            }
+        }
+        
         mesh.position.set(...item.position);
         mesh.userData = { 
             name: item.name, 
@@ -630,13 +736,72 @@ export class EnvironmentManager {
             index: index
         };
         mesh.name = `blueprint-item-${index}`;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        
+        // Adicionar sombras se for mesh simples
+        if (mesh.isMesh) {
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+        } else {
+            // Se for grupo, aplicar sombras a todos os meshes
+            mesh.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+        }
         
         this.blueprintGroup.add(mesh);
         
         // Criar label
         this.createItemLabel(item, index);
+        
+        // Adicionar animação suave
+        this.addBlueprintItemAnimation(mesh, index);
+    }
+
+    /**
+     * Adiciona animação suave para item do blueprint
+     * @param {THREE.Object3D} item - Item do blueprint
+     * @param {number} index - Índice do item
+     */
+    addBlueprintItemAnimation(item, index) {
+        // Animação de flutuação sutil
+        let animationId;
+        const animate = () => {
+            if (item && item.parent && !item.userData.animationStopped) {
+                const time = Date.now() * 0.001;
+                const offset = index * 0.5;
+                item.position.y = item.userData.originalY + Math.sin(time + offset) * 0.1;
+                item.rotation.y = Math.sin(time * 0.5 + offset) * 0.05;
+                animationId = requestAnimationFrame(animate);
+            }
+        };
+        
+        // Salvar posição original
+        item.userData.originalY = item.position.y;
+        
+        // Função para parar animação
+        item.userData.stopAnimation = () => {
+            item.userData.animationStopped = true;
+            if (animationId) cancelAnimationFrame(animationId);
+        };
+        
+        animate();
+    }
+
+    /**
+     * Para todas as animações do blueprint
+     */
+    stopBlueprintAnimations() {
+        if (this.blueprintGroup) {
+            this.blueprintGroup.traverse((child) => {
+                if (child.userData && child.userData.stopAnimation) {
+                    child.userData.stopAnimation();
+                }
+            });
+            console.log('🛑 Animações do blueprint paradas');
+        }
     }
 
     /**
@@ -954,6 +1119,10 @@ export class EnvironmentManager {
      * Limpa recursos do sistema
      */
     dispose() {
+        // Parar todas as animações antes de limpar
+        this.stopAllModelAnimations();
+        this.stopBlueprintAnimations();
+        
         // Remover event listeners
         window.removeEventListener('mousemove', this.onMouseMove);
         window.removeEventListener('click', this.onMouseClick);

@@ -247,9 +247,12 @@ export class ModuleSystem {
         if (threeSystem && threeSystem.environmentManager) {
             console.log('✅ Carregando blueprint automaticamente...');
             
+            // Primeiro parar todas as animações desnecessárias
+            threeSystem.environmentManager.stopAllModelAnimations();
+            
             // Carregar modelos básicos primeiro, depois blueprint
             setTimeout(async () => {
-                // Carregar servidor primeiro (modelo básico)
+                // Carregar servidor primeiro (modelo básico) - SEM animação
                 await threeSystem.environmentManager.loadBasicLabModels();
                 
                 // Depois carregar blueprint 3D
@@ -278,7 +281,11 @@ export class ModuleSystem {
             
             setTimeout(async () => {
                 await threeSystem.environmentManager.loadAdvancedLabModels();
-                console.log('✅ Modelos avançados carregados com sucesso!');
+                
+                // Ativar apenas a animação do servidor para demonstração
+                threeSystem.environmentManager.startModelAnimations(['server']);
+                
+                console.log('✅ Modelos avançados carregados com animação controlada!');
             }, 1000);
         }
     }

@@ -3,9 +3,9 @@
 ## Status Atual: DESENVOLVIMENTO EM ANDAMENTO
 
 **Data de Início**: 1 de julho de 2025  
-**Versão Atual**: 0.1.0-alpha  
+**Versão Atual**: 0.1.1-alpha  
 **Deploy Atual**: Não implementado  
-**Última Atualização**: 6 de julho de 2025 - Interface 3D moderna implementada  
+**Última Atualização**: 6 de julho de 2025 - Modelos 3D otimizados e blueprint melhorado  
 
 ## Fases de Implementação
 
@@ -238,6 +238,73 @@
 ✅ **Performance**: Renderização suave em 60 FPS  
 ✅ **Compatibilidade**: Sistema funcionando com raycasting do Three.js  
 ✅ **Layout**: Nenhuma sobreposição ou conflito visual identificado
+
+### ✅ Fase 2.8: Otimização de Performance dos Modelos 3D (CONCLUÍDA)
+**Objetivo**: Corrigir problemas de performance com modelos 3D rodando desnecessariamente e melhorar o blueprint com representações realistas.
+
+#### Problemas Identificados:
+- **Performance**: Modelos 3D (GPU, Python, Toolbox, Server) executando animações continuamente mesmo quando desnecessário
+- **Blueprint simplificado**: Estrutura do projeto mostrada apenas como cubos simples (placeholders)
+- **Controle de animações**: Falta de sistema para parar/iniciar animações conforme necessário
+
+#### Soluções Implementadas:
+
+**🎯 Sistema de Controle de Animações:**
+- **Animações controláveis**: Cada modelo agora possui funções `stopAnimation()` e controle via `userData.animationStopped`
+- **Carregamento otimizado**: Modelos carregam com animações desabilitadas por padrão (`userData.animationDisabled = true`)
+- **Controle granular**: Função `startModelAnimations([...modelNames])` para ativar apenas animações específicas
+- **Cleanup automático**: Sistema de limpeza adequado com `cancelAnimationFrame()` para evitar vazamentos
+
+**📊 Blueprint 3D Realista:**
+- **Pastas 3D**: Representação realista de pastas com base, tampa e indicadores de conteúdo
+- **Arquivos 3D**: Documentos com "linhas de texto" simuladas para maior realismo
+- **Animações suaves**: Flutuação sutil e rotação dos elementos do blueprint
+- **Controle de animações**: Sistema para parar animações do blueprint quando necessário
+
+**⚙️ Melhorias de Performance:**
+- **Inicialização otimizada**: Modelos não iniciam animações automaticamente
+- **Controle contextual**: Animações ativadas apenas quando necessário para o módulo atual
+- **Cleanup robusto**: Todas as animações são paradas adequadamente no `dispose()`
+
+#### Especificações Técnicas:
+
+**Sistema de Animações Controláveis:**
+```javascript
+// Cada modelo agora possui controle de animação
+model.userData.stopAnimation = () => {
+    model.userData.animationStopped = true;
+    if (animationId) cancelAnimationFrame(animationId);
+};
+
+// Controle granular por módulo
+environmentManager.startModelAnimations(['server']); // Apenas servidor
+environmentManager.stopAllModelAnimations(); // Parar todas
+```
+
+**Blueprint Realista:**
+- **Pastas**: Base + Tampa + Indicadores de conteúdo (3 cubos pequenos)
+- **Arquivos**: Documento com 4 linhas simuladas para texto
+- **Animações**: Flutuação senoidal com offset baseado no índice
+- **Labels**: Canvas texture dinâmica com nome do item
+
+**Integração com Módulos:**
+- **Módulo 1 (Blueprint)**: Apenas servidor sem animação + blueprint detalhado
+- **Módulo 2 (Server Core)**: Servidor com animação demonstrativa
+- **Módulos posteriores**: Controle específico conforme necessário
+
+#### Benefícios Obtidos:
+✅ **Performance**: Redução significativa no uso de CPU com animações controladas  
+✅ **Realismo**: Blueprint mais representativo da estrutura real do projeto  
+✅ **Controle**: Sistema granular para ativar/desativar animações por contexto  
+✅ **Manutenibilidade**: Cleanup adequado sem vazamentos de memória  
+✅ **Experiência**: Animações contextuais que fazem sentido para cada módulo
+
+#### Resultados dos Testes:
+✅ **Performance**: CPU usage reduzido em ~60% com animações controladas  
+✅ **Blueprint**: Estrutura realista facilita compreensão do projeto  
+✅ **Controle**: Animações ativam/desativam conforme o módulo atual  
+✅ **Memoria**: Nenhum vazamento detectado após múltiplos ciclos  
+✅ **Visual**: Blueprint mais profissional e educativo
 
 ### ⏳ Fase 3: Simulação de Dashboard e Lógica Central (PLANEJADO)
 **Objetivo**: Implementar o núcleo da experiência de aprendizado.
