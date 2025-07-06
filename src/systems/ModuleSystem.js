@@ -241,10 +241,23 @@ export class ModuleSystem {
      * Executa efeitos do módulo Blueprint 3D
      */
     executeBlueprint3DEffects() {
+        console.log('🎯 Executando efeitos do blueprint 3D...');
+        
         const threeSystem = this.app.getSystem('three');
         if (threeSystem && threeSystem.environmentManager) {
-            // Carregar blueprint 3D
-            threeSystem.environmentManager.loadProjectBlueprint();
+            console.log('✅ Carregando blueprint automaticamente...');
+            
+            // Carregar blueprint 3D automaticamente
+            setTimeout(() => {
+                threeSystem.environmentManager.createProjectStructure();
+                
+                // Focar câmera após criação
+                setTimeout(() => {
+                    threeSystem.environmentManager.focusCameraOnBlueprint();
+                }, 1000);
+            }, 500);
+        } else {
+            console.error('❌ Sistema Three.js ou EnvironmentManager não disponível para blueprint');
         }
     }
 
@@ -270,18 +283,25 @@ export class ModuleSystem {
         console.log('🗂️ Carregando blueprint 3D...');
         
         const threeSystem = this.app.getSystem('three');
-        if (threeSystem && threeSystem.getEnvironmentManager) {
-            const envManager = threeSystem.getEnvironmentManager();
-            if (envManager) {
-                envManager.createProjectStructure();
-                envManager.focusCameraOnBlueprint();
-            }
+        if (threeSystem && threeSystem.environmentManager) {
+            console.log('✅ Sistema Three.js encontrado, carregando blueprint...');
+            
+            // Criar a estrutura do projeto 3D
+            threeSystem.environmentManager.createProjectStructure();
+            
+            // Focar câmera no blueprint após um pequeno delay
+            setTimeout(() => {
+                threeSystem.environmentManager.focusCameraOnBlueprint();
+                console.log('📷 Blueprint 3D carregado e câmera posicionada');
+            }, 500);
+            
+            // Avançar para o próximo passo
+            setTimeout(() => {
+                this.nextStep();
+            }, 3000);
+        } else {
+            console.error('❌ Sistema Three.js ou EnvironmentManager não encontrado');
         }
-        
-        // Avançar para o próximo passo após carregamento
-        setTimeout(() => {
-            this.nextStep();
-        }, 2000);
     }
 
     /**

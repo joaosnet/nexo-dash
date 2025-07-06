@@ -413,57 +413,63 @@ export class EnvironmentManager {
      * Cria a estrutura do projeto em 3D
      */
     createProjectStructure() {
+        console.log('🗂️ Iniciando criação da estrutura do projeto 3D...');
+        
         // Remover blueprint anterior se existir
         if (this.blueprintGroup) {
             this.scene.remove(this.blueprintGroup);
+            console.log('🧹 Blueprint anterior removido');
         }
 
         this.blueprintGroup = new THREE.Group();
         this.blueprintGroup.name = 'project-blueprint';
+        
+        // Posicionar o grupo em uma área visível
+        this.blueprintGroup.position.set(0, 2, 0);
 
         // Criar base holográfica
         this.createBlueprintBase();
 
-        // Estrutura do projeto
+        // Estrutura do projeto com posições ajustadas
         const projectStructure = [
             { 
                 name: 'app/', 
-                position: [-4, 4, 0], 
+                position: [-3, 3, 0], 
                 color: 0x00ff88, 
                 type: 'folder',
                 description: 'Código principal da aplicação'
             },
             { 
                 name: 'data/', 
-                position: [0, 4, 0], 
+                position: [0, 3, 0], 
                 color: 0xff4757, 
                 type: 'folder',
                 description: 'Datasets e arquivos de dados'
             },
             { 
                 name: 'utils/', 
-                position: [4, 4, 0], 
+                position: [3, 3, 0], 
                 color: 0x3742fa, 
                 type: 'folder',
                 description: 'Funções utilitárias'
             },
             { 
                 name: 'tests/', 
-                position: [-4, 1.5, 0], 
+                position: [-3, 1, 0], 
                 color: 0xffa502, 
                 type: 'folder',
                 description: 'Testes automatizados'
             },
             { 
                 name: 'main.py', 
-                position: [0, 1.5, 0], 
+                position: [0, 1, 0], 
                 color: 0x2ed573, 
                 type: 'file',
                 description: 'Arquivo principal da aplicação'
             },
             { 
                 name: 'pyproject.toml', 
-                position: [4, 1.5, 0], 
+                position: [3, 1, 0], 
                 color: 0xff6348, 
                 type: 'file',
                 description: 'Configuração do projeto'
@@ -474,10 +480,13 @@ export class EnvironmentManager {
             this.createBlueprintItem(item, index);
         });
 
+        // Adicionar efeitos visuais
+        this.addBlueprintEffects();
+
         this.scene.add(this.blueprintGroup);
         this.enableInteraction();
         
-        console.log('🗂️ Estrutura do projeto 3D criada');
+        console.log('✅ Estrutura do projeto 3D criada com sucesso');
     }
 
     /**
@@ -584,6 +593,47 @@ export class EnvironmentManager {
         sprite.name = `blueprint-label-${index}`;
         
         this.blueprintGroup.add(sprite);
+    }
+
+    /**
+     * Adiciona efeitos visuais ao blueprint
+     */
+    addBlueprintEffects() {
+        // Partículas holográficas ao redor do blueprint
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleCount = 50;
+        const positions = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            positions[i3] = (Math.random() - 0.5) * 15;
+            positions[i3 + 1] = Math.random() * 8;
+            positions[i3 + 2] = (Math.random() - 0.5) * 15;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0x00ff88,
+            size: 0.1,
+            transparent: true,
+            opacity: 0.6
+        });
+        
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        particles.name = 'blueprint-particles';
+        this.blueprintGroup.add(particles);
+        
+        // Animação das partículas
+        const animateParticles = () => {
+            if (particles.parent) {
+                particles.rotation.y += 0.001;
+                requestAnimationFrame(animateParticles);
+            }
+        };
+        animateParticles();
+        
+        console.log('✨ Efeitos visuais do blueprint adicionados');
     }
 
     /**
@@ -750,38 +800,49 @@ export class EnvironmentManager {
      * Foca a câmera no blueprint
      */
     focusCameraOnBlueprint() {
-        if (!this.blueprintGroup) return;
+        if (!this.blueprintGroup) {
+            console.warn('⚠️ Blueprint não encontrado para focar câmera');
+            return;
+        }
+        
+        console.log('📷 Iniciando foco da câmera no blueprint...');
         
         // Configuração de câmera otimizada para blueprint
-        const targetPos = { x: 6, y: 8, z: 10 };
-        const targetLookAt = { x: 0, y: 2.5, z: 0 };
+        const targetPos = { x: 8, y: 10, z: 12 };
+        const targetLookAt = { x: 0, y: 4, z: 0 };
+        
+        const startPos = {
+            x: this.camera.position.x,
+            y: this.camera.position.y,
+            z: this.camera.position.z
+        };
         
         const startTime = Date.now();
-        const duration = 3000;
+        const duration = 2500;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
-            // Easing suave
+            // Easing suave (cubic-out)
             const easedProgress = 1 - Math.pow(1 - progress, 3);
             
             // Interpolar posição da câmera
-            this.camera.position.x = this.camera.position.x + (targetPos.x - this.camera.position.x) * easedProgress * 0.1;
-            this.camera.position.y = this.camera.position.y + (targetPos.y - this.camera.position.y) * easedProgress * 0.1;
-            this.camera.position.z = this.camera.position.z + (targetPos.z - this.camera.position.z) * easedProgress * 0.1;
+            this.camera.position.x = startPos.x + (targetPos.x - startPos.x) * easedProgress;
+            this.camera.position.y = startPos.y + (targetPos.y - startPos.y) * easedProgress;
+            this.camera.position.z = startPos.z + (targetPos.z - startPos.z) * easedProgress;
             
             // Fazer câmera olhar para o centro do blueprint
             this.camera.lookAt(targetLookAt.x, targetLookAt.y, targetLookAt.z);
             
             if (progress < 1) {
                 requestAnimationFrame(animate);
+            } else {
+                console.log('✅ Câmera focada no blueprint');
             }
         };
         
         animate();
-        
-        console.log('📷 Câmera focada no blueprint');
     }
 
     /**

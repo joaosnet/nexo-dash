@@ -60,10 +60,10 @@ A aplicação é construída com módulos JavaScript (ES6) e segue uma arquitetu
 
 ## Fluxo de Trabalho de Desenvolvimento
 
-Para executar o projeto localmente, inicie um servidor web simples na raiz do projeto.
+Para testar ou executar o projeto localmente, inicie apenas uma vez o servidor web simples na raiz do projeto.
 
 ```bash
 uv run python -m http.server 8000
 ```
 
-O projeto é uma aplicação de página única (`index.html`) e não requer um processo de build complexo. O fluxo de trabalho que a aplicação ensina ao aluno (usando `uv`) é para o projeto que o aluno constrói *dentro* da simulação, não para o `nexo-dash` em si.
+O projeto é uma aplicação de página única (`index.html`) e deve ser aberto com playwright e não requer um processo de build complexo. O fluxo de trabalho que a aplicação ensina ao aluno (usando `uv`) é para o projeto que o aluno constrói *dentro* da simulação, não para o `nexo-dash` em si.

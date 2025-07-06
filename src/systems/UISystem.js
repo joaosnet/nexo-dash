@@ -637,6 +637,9 @@ export class UISystem {
         // Adicionar ao DOM
         document.body.appendChild(hologramButton);
 
+        // Aplicar responsividade
+        this.adjustResponsiveness();
+
         console.log('🎮 Botão de controle do holograma criado');
     }
 
@@ -648,9 +651,6 @@ export class UISystem {
         if (document.getElementById('voice-control-btn')) {
             return;
         }
-
-        // Estado da voz (inicialmente ligada)
-        let voiceEnabled = true;
 
         const voiceControlButton = document.createElement('button');
         voiceControlButton.id = 'voice-control-btn';
@@ -681,56 +681,63 @@ export class UISystem {
             backdrop-filter: blur(10px);
         `;
 
-        // Event listener para toggle da voz
-        voiceControlButton.addEventListener('click', () => {
-            voiceEnabled = !voiceEnabled;
-            
-            if (voiceEnabled) {
-                // Voz ligada
-                voiceControlButton.innerHTML = '🔊 Desligar Voz';
-                voiceControlButton.style.background = 'rgba(0, 200, 255, 0.2)';
-                voiceControlButton.style.borderColor = '#00ccff';
-                voiceControlButton.style.color = '#00ccff';
-                voiceControlButton.style.boxShadow = '0 0 15px rgba(0, 200, 255, 0.3)';
-                
-                // Habilitar voz globalmente
-                window.voiceEnabled = true;
-                
-                // Parar qualquer síntese em andamento e falar confirmação
-                if (window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
+        // Selecionar voz feminina automaticamente
+        const selectFemaleVoice = () => {
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find(voice => voice.lang === 'pt-BR' && voice.name.toLowerCase().includes('feminina')) || voices[0];
+        };
+
+        // Função para alternar estado da voz
+        const toggleVoice = (enabled) => {
+            const styles = enabled ? {
+                text: '🔊 Desligar Voz',
+                background: 'rgba(0, 200, 255, 0.2)',
+                borderColor: '#00ccff',
+                color: '#00ccff',
+                boxShadow: '0 0 15px rgba(0, 200, 255, 0.3)',
+                notification: 'Voz ligada',
+                notificationType: 'success'
+            } : {
+                text: '🔇 Ligar Voz',
+                background: 'rgba(255, 71, 87, 0.2)',
+                borderColor: '#ff4757',
+                color: '#ff4757',
+                boxShadow: '0 0 15px rgba(255, 71, 87, 0.3)',
+                notification: 'Voz desligada',
+                notificationType: 'info'
+            };
+
+            voiceControlButton.innerHTML = styles.text;
+            voiceControlButton.style.background = styles.background;
+            voiceControlButton.style.borderColor = styles.borderColor;
+            voiceControlButton.style.color = styles.color;
+            voiceControlButton.style.boxShadow = styles.boxShadow;
+
+            window.voiceEnabled = enabled;
+
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                if (enabled && window.speakText) {
+                    const femaleVoice = selectFemaleVoice();
                     setTimeout(() => {
-                        if (window.speakText) {
-                            window.speakText('Voz reativada!', 'pt-BR', 1.0, 1.0);
-                        }
+                        const utterance = new SpeechSynthesisUtterance('Voz reativada!');
+                        utterance.voice = femaleVoice;
+                        utterance.lang = 'pt-BR';
+                        window.speechSynthesis.speak(utterance);
                     }, 100);
                 }
-                
-                this.showNotification('Voz ligada', 'success', 2000);
-            } else {
-                // Voz desligada
-                voiceControlButton.innerHTML = '� Ligar Voz';
-                voiceControlButton.style.background = 'rgba(255, 71, 87, 0.2)';
-                voiceControlButton.style.borderColor = '#ff4757';
-                voiceControlButton.style.color = '#ff4757';
-                voiceControlButton.style.boxShadow = '0 0 15px rgba(255, 71, 87, 0.3)';
-                
-                // Desabilitar voz globalmente
-                window.voiceEnabled = false;
-                
-                // Parar qualquer síntese em andamento
-                if (window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
-                }
-                
-                this.showNotification('Voz desligada', 'info', 2000);
             }
-        });
+
+            this.showNotification(styles.notification, styles.notificationType, 2000);
+        };
+
+        // Event listener para toggle da voz
+        voiceControlButton.addEventListener('click', () => toggleVoice(!window.voiceEnabled));
 
         // Efeitos hover
         voiceControlButton.addEventListener('mouseenter', () => {
             voiceControlButton.style.transform = 'translateY(-2px) scale(1.05)';
-            voiceControlButton.style.boxShadow = voiceEnabled 
+            voiceControlButton.style.boxShadow = window.voiceEnabled 
                 ? '0 5px 25px rgba(0, 200, 255, 0.6)'
                 : '0 5px 25px rgba(255, 71, 87, 0.6)';
         });
@@ -742,8 +749,12 @@ export class UISystem {
         // Adicionar ao DOM
         document.body.appendChild(voiceControlButton);
 
-        // Configurar estado inicial da voz
+        // Configurar estado inicial da voz como ativado
         window.voiceEnabled = true;
+
+        // Aplicar responsividade e adicionar listener para redimensionamento
+        this.adjustResponsiveness();
+        window.addEventListener('resize', () => this.adjustResponsiveness());
 
         console.log('🎤 Botão de controle de voz criado');
     }
@@ -799,5 +810,49 @@ export class UISystem {
             panelActions: null
         };
         this.isVisible = false;
+    }
+
+    /**
+     * Ajustar responsividade para telas pequenas
+     */
+    adjustResponsiveness() {
+        const hologramButton = document.getElementById('hologram-control-btn');
+        const voiceControlButton = document.getElementById('voice-control-btn');
+
+        if (window.innerWidth <= 480) {
+            if (hologramButton) {
+                hologramButton.style.bottom = '90px';
+                hologramButton.style.left = '50%';
+                hologramButton.style.transform = 'translateX(-50%)';
+                hologramButton.style.width = 'calc(80% - 20px)';
+                hologramButton.style.maxWidth = '200px';
+                hologramButton.style.right = 'auto';
+            }
+
+            if (voiceControlButton) {
+                voiceControlButton.style.bottom = '20px';
+                voiceControlButton.style.left = '50%';
+                voiceControlButton.style.transform = 'translateX(-50%)';
+                voiceControlButton.style.width = 'calc(80% - 20px)';
+                voiceControlButton.style.maxWidth = '200px';
+                voiceControlButton.style.right = 'auto';
+            }
+        } else {
+            if (hologramButton) {
+                hologramButton.style.bottom = '20px';
+                hologramButton.style.left = '20px';
+                hologramButton.style.transform = 'none';
+                hologramButton.style.width = 'auto';
+                hologramButton.style.maxWidth = 'none';
+            }
+
+            if (voiceControlButton) {
+                voiceControlButton.style.bottom = '20px';
+                voiceControlButton.style.right = '20px';
+                voiceControlButton.style.transform = 'none';
+                voiceControlButton.style.width = 'auto';
+                voiceControlButton.style.maxWidth = 'none';
+            }
+        }
     }
 }
