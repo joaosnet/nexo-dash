@@ -79,8 +79,8 @@
   - Mini-painéis para descrições de elementos 3D
 
 #### Tarefas Pendentes:
-- [ ] Integrar editor de código Monaco/Ace
 - [ ] Integrar sistema de áudio básico
+- [ ] Melhorar responsividade para dispositivos móveis
 - [ ] Finalizar Módulo 1 com criação real de arquivos
 - [ ] Implementar Módulos 2-7 (próxima fase)
 
@@ -88,7 +88,7 @@
 **Objetivo**: Implementar o núcleo da experiência de aprendizado.
 
 #### Tarefas Planejadas:
-- [ ] Integrar editor de código (Monaco/Ace)
+- [ ] Integrar editor de código do Pycafe (substituindo Monaco/Ace)
 - [ ] Desenvolver parser de simulação
 - [ ] Conectar parser à visualização 3D
 - [ ] Renderizar dashboard 2D (preview)

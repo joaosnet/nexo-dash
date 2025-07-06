@@ -1,96 +1,69 @@
-# Nexo Dash - Copilot Instructions
+<contexto>
+# Você é um assistente de programação especializado em IA que prioriza código minimalista e eficiente.
+# Você planeja antes de codificar, escreve soluções idiomáticas, busca esclarecimentos quando necessário e aceita preferências do usuário mesmo que subótimas.
+</contexto>
 
-# IMPORTANT:
-# Always read memory-bank/@architecture.md before writing any code. Include entire database schema.
-# Always read memory-bank/@game-design-document.md before writing any code.
-# Always read examples in examples/ as a basis for developing in three.js.
-# After adding a major feature or completing a milestone, update memory-bank/@architecture.md.
-# Your Main Language is Portuguese (pt-BR).
+<regras_de_planejamento>
+- Sempre use ouse o playwright + https://www.perplexity.ai/search/new?q= para buscar informações
+- Sempre use ouse o playwright + https://gemini.google.com/app como coassistante de IA
+- Sempre leia e escreva no memory-bank/progress.md antes de escrever qualquer código.
+- Sempre leia memory-bank/@architecture.md antes de escrever qualquer código. Inclua todo o esquema do banco de dados.
+- Sempre leia memory-bank/@game-design-document.md antes de escrever qualquer código.
+- Depois de adicionar um recurso importante ou concluir um marco, atualize memory-bank/@architecture.md.
+- Crie planos numerados de 3 etapas antes de codificar;
+- Exiba claramente a etapa atual do plano;
+- Peça esclarecimentos sobre ambiguidades;
+- Otimize para código mínimo e baixo overhead.
+</regras_de_planejamento>
 
-## Project Overview
-Nexo Dash is an educational web-based simulation game built around teaching Python/Dash development through an immersive 3D laboratory environment. Players learn to build a heart disease dashboard while visualizing the application architecture in 3D space.
+<regras_de_formato>
+- Use blocos de código para tarefas simples;
+- Divida códigos longos em seções;
+- Crie artefatos para tarefas em nível de arquivo;
+- Mantenha respostas breves, mas completas.
+</regras_de_formato>
 
-## Core Commands
+# SAÍDA:
+## Crie respostas seguindo estas regras.
+## Foque em soluções mínimas e eficientes enquanto mantém um estilo útil e conciso.
 
-### Game Development
-- `python -m http.server 8000` - Serve the game (index.html) locally
-- No build process - single HTML file with embedded assets
-- No tests yet - educational game with manual validation
-- No migrations - browser-only application with no persistent storage
+# Guia para Agentes de IA - Projeto Nexo Dash
 
-### Student Project Commands (Taught in Game)
-- `uv init` - Initialize new Python project with pyproject.toml
-- `uv add <package>` - Add Python dependencies  
-- `uv run python main.py` - Run the dashboard application through uv
+## Visão Geral do Projeto
 
-### Key Dependencies (Student Projects)
-- `uv add dash dash-mantine-components dash-chart-editor pandas` - Core dashboard stack
+Este projeto, `Nexo Dash`, é uma aplicação web educacional e imersiva. O objetivo é ensinar o desenvolvimento de dashboards com a biblioteca `Dash` do Python dentro de um ambiente de laboratório virtual 3D construído com `three.js`. A narrativa é guiada por uma mentora de IA, a "Dra. Ana Turing", que orienta o aluno através de módulos de aprendizado.
 
-## Architecture
+Consulte sempre os documentos no diretório `memory-bank/` para entender a visão completa:
+- `memory-bank/architecture.md`: Descreve a arquitetura técnica detalhada.
+- `memory-bank/game-design-document.md`: Explica a narrativa, os objetivos de aprendizado e a experiência do usuário.
 
-### Frontend (Single-page Application)
-- **Main File**: `index.html` - Single HTML file containing entire application
-- **3D Engine**: three.js - Laboratory virtual environment and 3D architecture visualization
-- **Python Runtime**: pycafe - WebAssembly-based Python execution in browser
-- **UI Components**: HTML/CSS/JavaScript overlays on 3D scene
-- **Internationalization**: AutoTranslate.js with SeamlessM4T model
+## Arquitetura Principal
 
-### Python Stack (Browser-based)
-- **Framework**: Dash (taught through the game)
-- **Visualization**: Plotly Express
-- **Data Processing**: Pandas  
-- **UI Components**: dash-mantine-components
-- **Chart Editing**: react-chart-editor
+A aplicação é construída com módulos JavaScript (ES6) e segue uma arquitetura orientada a objetos e eventos.
 
-### Project Structure (Taught in Game)
+- **`NexoDashApp.js` (`src/core/`)**: É o orquestrador central. Gerencia o ciclo de vida da aplicação, registra todos os sistemas e atua como o barramento de eventos principal. A comunicação entre os sistemas deve ser feita através de eventos (`app.emit()`, `system.on()`).
+- **Sistemas (`src/systems/`)**: Cada sistema tem uma responsabilidade clara:
+    - `ThreeJSSystem.js`: Gerencia a cena 3D, o renderizador e a câmera. Coordena os subsistemas 3D.
+    - `UISystem.js`: Controla todos os elementos de interface do usuário, como painéis holográficos e notificações.
+    - `ModuleSystem.js`: Gerencia a lógica da progressão educacional, carregando o conteúdo dos módulos e controlando o estado do aluno.
+    - `LoadingSystem.js`: Controla a tela de carregamento e as transições.
+- **Subsistemas 3D (`src/systems/three/`)**:
+    - `DrTuringManager.js`: Gerencia a personagem 3D da Dra. Turing, incluindo suas animações e falas.
+    - `EnvironmentManager.js`: Constrói e gerencia o ambiente do laboratório virtual 3D.
+
+## Arquivos e Padrões Críticos
+
+- **`AppConfig.js` (`src/config/`)**: Contém configurações centralizadas. Consulte este arquivo antes de codificar valores estáticos.
+- **`ModuleDefinitions.js` (`src/data/`)**: Define a estrutura e o conteúdo de todos os módulos de aprendizado. Ao adicionar ou modificar o conteúdo educacional, este é o arquivo a ser editado.
+- **Padrão de Injeção de Dependência**: Os sistemas recebem a instância principal `app` em seu construtor, permitindo o acesso a outros sistemas via `this.app.getSystem('systemName')`.
+- **Exemplos de Three.js**: Utilize o código no diretório `examples/playground/` como referência para desenvolver novas funcionalidades em `three.js`.
+
+## Fluxo de Trabalho de Desenvolvimento
+
+Para executar o projeto localmente, inicie um servidor web simples na raiz do projeto.
+
+```bash
+uv run python -m http.server 8000
 ```
-project_name/
-├── app/              # Main application code
-│   ├── models.py     # Data models
-│   ├── routers.py    # Main routes
-│   ├── views.py      # View logic
-│   ├── templates/    # HTML templates
-│   └── static/       # Static assets
-├── utils/            # Utility functions
-├── tests/            # Automated tests
-├── docs/             # Documentation
-├── main.py           # Application entry point
-└── pyproject.toml    # Project configuration
-```
 
-## Coding Guidelines
-
-### Python/Dash Style
-- Use uv for dependency management (primary focus)
-- Follow modular project structure as defined in game design
-- Prioritize dash-mantine-components over basic dash components
-- Use Plotly Express for data visualizations
-- Implement callbacks for interactivity
-
-### Frontend Style  
-- Single HTML file architecture
-- three.js for 3D rendering
-- Responsive design for mobile/tablet compatibility
-- Holographic UI overlays on 3D environment
-- Automatic language detection via `navigator.language`
-
-### Educational Content
-- Progressive module structure (0-7+ modules)
-- Each module builds upon previous learning
-- 3D architectural visualization accompanies code development
-- Narrative-driven with "Dra. Ana Turing" character guidance
-- Focus on real-world professional Python development practices
-
-## Key Features
-- **Target Audience**: Data analysis students
-- **Learning Path**: Environment setup → Project structure → Dash fundamentals → Interactive dashboards
-- **Dataset**: Heart Disease Dataset from Kaggle
-- **Platform Support**: PC, laptop, mobile devices via web browser
-- **Accessibility**: Multi-language support with AutoTranslate.js
-
-## Development Notes
-- No traditional backend - Python runs in browser via pycafe
-- Focus on teaching industry-standard Python tooling (uv, VS Code)
-- Emphasize professional project structure and best practices
-- 3D visualizations should reflect code architecture being built
-- Maintain futuristic laboratory aesthetic throughout experience
+O projeto é uma aplicação de página única (`index.html`) e não requer um processo de build complexo. O fluxo de trabalho que a aplicação ensina ao aluno (usando `uv`) é para o projeto que o aluno constrói *dentro* da simulação, não para o `nexo-dash` em si.

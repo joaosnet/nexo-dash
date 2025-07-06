@@ -583,7 +583,7 @@ export class UISystem {
         hologramButton.id = 'hologram-control-btn';
         hologramButton.className = 'holographic-button hologram-control';
         hologramButton.innerHTML = '👩‍🔬 Mostrar Holograma';
-        
+
         // Estilos específicos para o botão do holograma
         hologramButton.style.cssText = `
             position: fixed;
@@ -606,7 +606,6 @@ export class UISystem {
             min-width: 160px;
             text-align: center;
             backdrop-filter: blur(10px);
-            display: none;
         `;
 
         // Event listener para toggle do holograma
@@ -614,13 +613,12 @@ export class UISystem {
             const threeSystem = this.app.getSystem('three');
             if (threeSystem && threeSystem.drTuringManager) {
                 const isVisible = threeSystem.drTuringManager.toggleHologram();
-                
-                // Atualizar texto do botão
+                this.updateHologramButtonState(isVisible);
+
+                // Exibir notificação
                 if (isVisible) {
-                    hologramButton.style.display = 'none'; // Ocultar botão quando holograma está visível
                     this.showNotification('Dra. Turing apareceu!', 'success', 2000);
                 } else {
-                    hologramButton.style.display = 'block'; // Mostrar botão quando holograma está oculto
                     this.showNotification('Dra. Turing desapareceu!', 'info', 2000);
                 }
             }
@@ -759,16 +757,21 @@ export class UISystem {
         if (!hologramButton) return;
 
         if (isVisible) {
-            // Holograma visível - ocultar o botão
-            hologramButton.style.display = 'none';
+            // Holograma visível - atualizar texto do botão
+            hologramButton.innerHTML = '👩‍🔬 Ocultar Holograma';
+            hologramButton.style.borderColor = '#ff4757';
+            hologramButton.style.color = '#ff4757';
+            hologramButton.style.boxShadow = '0 0 15px rgba(255, 71, 87, 0.3)';
         } else {
-            // Holograma oculto - mostrar o botão
-            hologramButton.style.display = 'block';
+            // Holograma oculto - atualizar texto do botão
             hologramButton.innerHTML = '👩‍🔬 Mostrar Holograma';
             hologramButton.style.borderColor = '#00ff88';
             hologramButton.style.color = '#00ff88';
             hologramButton.style.boxShadow = '0 0 15px rgba(0, 255, 136, 0.3)';
         }
+
+        // Garantir que o botão esteja visível
+        hologramButton.style.display = 'block';
     }
 
     /**
