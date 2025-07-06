@@ -11,7 +11,7 @@
 - Sempre leia memory-bank/@architecture.md antes de escrever qualquer código. Inclua todo o esquema do banco de dados.
 - Sempre leia memory-bank/@game-design-document.md antes de escrever qualquer código.
 - Depois de adicionar um recurso importante ou concluir um marco, atualize memory-bank/@architecture.md.
-- Crie planos numerados de 3 etapas antes de codificar;
+- Crie planos numerados de 6 etapas antes de codificar;
 - Exiba claramente a etapa atual do plano;
 - Peça esclarecimentos sobre ambiguidades;
 - Otimize para código mínimo e baixo overhead.

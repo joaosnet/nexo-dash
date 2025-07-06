@@ -5,8 +5,7 @@ export class VoiceSystem {
     constructor() {
         this.isEnabled = true;
         this.initialized = false;
-        // Remover setup automático para prevenir conflitos
-        // this.setupVoiceSystem(); 
+        this.setupVoiceSystem(); 
     }
 
     setupVoiceSystem() {
