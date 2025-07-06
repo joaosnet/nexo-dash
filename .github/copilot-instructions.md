@@ -4,6 +4,7 @@
 </contexto>
 
 <regras_de_planejamento>
+- Apos cada implementação teste o que foi feito.
 - Sempre use ouse o playwright + https://www.perplexity.ai/search/new?q= para buscar informações
 - Sempre use ouse o playwright + https://gemini.google.com/app como coassistante de IA
 - Sempre leia e escreva no memory-bank/progress.md antes de escrever qualquer código.
