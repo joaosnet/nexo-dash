@@ -2,9 +2,10 @@
  * VoiceSystem - Sistema de síntese de voz otimizado
  */
 export class VoiceSystem {
-    constructor() {
+    constructor(app) { // Adicionado parâmetro app
         this.isEnabled = true;
         this.initialized = false;
+        this.app = app; // Armazenar referência ao app
         this.setupVoiceSystem(); 
     }
 
@@ -62,7 +63,10 @@ export class VoiceSystem {
                 console.error('❌ Erro na síntese:', e);
                 if (e.error === 'not-allowed') {
                     console.warn('⚠️ Ative o áudio primeiro através de interação do usuário!');
-                    this.app.getSystem('ui').showNotification('Clique em qualquer lugar para ativar o áudio!');
+                    // Verificar se app está disponível antes de acessar
+                    if (this.app && this.app.getSystem) {
+                        this.app.getSystem('ui').showNotification('Clique em qualquer lugar para ativar o áudio!');
+                    }
                 }
             };
 

@@ -12,7 +12,8 @@ import { LoadingUtils } from './LoadingUtils.js';
 export class AppInitializer {
     constructor() {
         this.loadingUtils = new LoadingUtils();
-        this.voiceSystem = new VoiceSystem();
+        // Criar VoiceSystem com app temporário (será atualizado posteriormente)
+        this.voiceSystem = new VoiceSystem({ getSystem: () => null });
         
         // Expor VoiceSystem globalmente para integração
         window.voiceSystem = this.voiceSystem;
@@ -94,6 +95,9 @@ export class AppInitializer {
             // Criar e configurar aplicação
             window.app = new NexoDashApp();
 
+            // Atualizar referência do app no VoiceSystem
+            this.voiceSystem.app = window.app;
+            
             const systems = [
                 ['loading', new LoadingSystem(window.app)],
                 ['three', new ThreeJSSystem(window.app)],
