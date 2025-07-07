@@ -16,8 +16,8 @@ export class DrTuringManager {
         this.speechSystem = null;
         
         // Configurações
-        this.position = { x: -8, y: 0, z: 5 };
-        this.rotation = { x: 0, y: Math.PI / 4, z: 0 };
+        this.position = { x: -4, y: 0, z: 5 }; // Ajustado de -8 para -4 para centralizar mais
+        this.rotation = { x: 0, y: Math.PI / 6, z: 0 }; // Ajustado para olhar mais para a câmera
         this.scale = { x: 2.5, y: 2.5, z: 2.5 };
         
         // Timeouts e estados
@@ -107,14 +107,21 @@ export class DrTuringManager {
         // Remover modelo anterior se existir
         this.removePreviousModel();
 
-        console.log('👩‍🔬 Criando modelo geométrico da Dra. Turing...');
+        console.log('👩‍🔬 Carregando modelo realista da Dra. Turing...');
         
         try {
-            this.createGeometricDrTuring();
-            console.log('✅ Modelo geométrico da Dra. Turing criado');
+            // Prioriza o carregamento do modelo FBX realista
+            await this.loadFBXModel();
+            console.log('✅ Modelo realista da Dra. Turing carregado com sucesso');
         } catch (error) {
-            console.error('❌ Erro ao criar modelo geométrico:', error);
-            this.createPlaceholder();
+            console.error('❌ Erro ao carregar modelo FBX. Tentando fallback para modelo geométrico.', error);
+            try {
+                this.createGeometricDrTuring();
+                console.log('✅ Modelo geométrico de fallback criado com sucesso');
+            } catch (geomError) {
+                console.error('❌ Erro ao criar modelo geométrico de fallback. Criando placeholder.', geomError);
+                this.createPlaceholder();
+            }
         } finally {
             this.isLoading = false;
         }
@@ -472,9 +479,12 @@ export class DrTuringManager {
         
         // Posicionamento
         this.model.position.set(this.position.x, this.position.y, this.position.z);
-        this.model.scale.set(0.05, 0.05, 0.05); // Modelos FBX são maiores
+        this.model.scale.set(0.02, 0.02, 0.02); // Reduzindo a escala para um tamanho mais apropriado
         this.model.rotation.y = this.rotation.y;
         
+        // Inicialmente invisível até que tudo esteja pronto
+        this.model.visible = false;
+
         // Configurar materiais
         this.setupModelMaterials(this.model);
         
@@ -656,22 +666,30 @@ export class DrTuringManager {
                 const action = this.mixer.clipAction(clip);
                 const clipName = clip.name.toLowerCase();
                 
-                if (clipName.includes('idle') || clipName.includes('breathing') || index === 0) {
+                // Garante que a primeira animação (geralmente a pose T) não seja a idle
+                if ((clipName.includes('idle') || clipName.includes('breathing')) && !clipName.includes('t-pose')) {
                     animationActions.idle = action;
-                    action.loop = THREE.LoopRepeat;
-                    action.play();
                 } else if (clipName.includes('talk') || clipName.includes('speak')) {
                     animationActions.speak = action;
-                    action.loop = THREE.LoopRepeat;
                 } else if (clipName.includes('wave') || clipName.includes('hello')) {
                     animationActions.wave = action;
-                    action.loop = THREE.LoopOnce;
                 }
             });
+
+            // Se nenhuma animação 'idle' foi encontrada, usa a primeira animação que não seja a T-pose
+            if (!animationActions.idle && fbx.animations.length > 0) {
+                const firstSafeAnimation = fbx.animations.find(c => !c.name.toLowerCase().includes('t-pose')) || fbx.animations[0];
+                animationActions.idle = this.mixer.clipAction(firstSafeAnimation);
+            }
+
+            if (animationActions.idle) {
+                animationActions.idle.loop = THREE.LoopRepeat;
+                animationActions.idle.play();
+            }
             
             this.animations = {
                 ...animationActions,
-                isPlaying: 'idle'
+                isPlaying: animationActions.idle ? 'idle' : null
             };
             
             console.log('🎭 Animações FBX configuradas');
