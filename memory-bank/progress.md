@@ -3,9 +3,9 @@
 ## Status Atual: DESENVOLVIMENTO EM ANDAMENTO
 
 **Data de Início**: 1 de julho de 2025  
-**Versão Atual**: 0.1.2-alpha  
+**Versão Atual**: 0.1.3-alpha  
 **Deploy Atual**: Não implementado  
-**Última Atualização**: 6 de julho de 2025 - Modernização dos botões 3D com estilo terminal e reposicionamento  
+**Última Atualização**: 6 de julho de 2025 - Remoção da esfera central do laboratório  
 
 ## Fases de Implementação
 
@@ -591,6 +591,41 @@ Config ⚙️:     (6, -6, 4) - Laranja #ffaa00
 ✅ **Performance**: Renderização suave sem lag  
 ✅ **Funcionalidade**: Todos os botões executam ações corretamente  
 ✅ **Acessibilidade**: Interface mais intuitiva e user-friendly
+
+### ✅ Fase 2.13: Remoção da Esfera Central do Laboratório (CONCLUÍDA)
+**Objetivo**: Remover a esfera holográfica que aparecia no meio da cena desde o início, limpando a visualização.
+
+#### Problema Identificado:
+- **Esfera desnecessária**: Núcleo central azul flutuante (SphereGeometry) criando poluição visual
+- **Distração visual**: Elemento no centro da cena desviava atenção do blueprint e conteúdo educacional
+- **Design inconsistente**: Esfera não tinha função clara na experiência do usuário
+
+#### Implementação Realizada:
+
+**🗑️ Remoção Completa da Esfera Central:**
+- Removida função `createCentralCore()` do EnvironmentManager
+- Eliminada chamada no método `createBasicEnvironment()`
+- Removidos: SphereGeometry (0.5 raio), animação de rotação e flutuação
+- Limpeza do Map `laboratoryElements` removendo referência 'core'
+
+**🧹 Limpeza de Código:**
+- Método `addCoreAnimation()` removido completamente
+- Referências no progress.md atualizadas
+- Comentários e logs de debug atualizados
+- Sistema de elementos do laboratório otimizado
+
+#### Benefícios Obtidos:
+✅ **Clareza visual**: Foco total no blueprint e elementos educacionais  
+✅ **Performance**: Eliminação de animação desnecessária e geometria  
+✅ **Design limpo**: Interface mais minimalista e profissional  
+✅ **Foco educacional**: Atenção direcionada para o conteúdo de aprendizado  
+✅ **Experiência melhorada**: Menos distrações visuais durante o uso
+
+#### Resultados dos Testes:
+✅ **Visual**: Cena limpa sem elementos desnecessários no centro  
+✅ **Performance**: Redução de recursos renderizados  
+✅ **Funcionalidade**: Todos os outros elementos mantidos intactos  
+✅ **UX**: Experiência mais focada e menos poluída visualmente
 
 ### ⏳ Fase 3: Simulação de Dashboard e Lógica Central (PLANEJADO)
 **Objetivo**: Implementar o núcleo da experiência de aprendizado.

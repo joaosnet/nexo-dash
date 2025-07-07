@@ -53,48 +53,7 @@ export class EnvironmentManager {
         
         this.laboratoryElements.set('grid', gridHelper);
 
-        // Apenas o núcleo central, sem base circular
-        this.createCentralCore();
-        
-        console.log('🏗️ Ambiente do laboratório criado (com piso quadriculado, sem base circular)');
-    }
-
-    /**
-     * Cria o núcleo central do laboratório
-     */
-    createCentralCore() {
-        const coreGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-        const coreMaterial = new THREE.MeshLambertMaterial({
-            color: 0x00ccff,
-            transparent: true,
-            opacity: 0.8,
-            emissive: 0x002244
-        });
-        
-        const core = new THREE.Mesh(coreGeometry, coreMaterial);
-        core.position.y = 2;
-        core.name = 'laboratory-core';
-        this.scene.add(core);
-        
-        this.laboratoryElements.set('core', core);
-        
-        // Adicionar animação rotacional
-        this.addCoreAnimation(core);
-    }
-
-    /**
-     * Adiciona animação ao núcleo central
-     * @param {THREE.Mesh} core - Núcleo a animar
-     */
-    addCoreAnimation(core) {
-        const animateCore = () => {
-            if (core && core.parent) {
-                core.rotation.y += 0.01;
-                core.position.y = 2 + Math.sin(Date.now() * 0.001) * 0.2;
-                requestAnimationFrame(animateCore);
-            }
-        };
-        animateCore();
+        console.log('🏗️ Ambiente do laboratório criado (apenas piso quadriculado)');
     }
 
     /**
@@ -141,8 +100,8 @@ export class EnvironmentManager {
     createBasicLabModels() {
         console.log('🏭 Criando modelos básicos do laboratório...');
 
-        // Não carrega mais o servidor no meio - apenas mantém o núcleo central
-        console.log('✅ Modelos básicos mantidos (núcleo central preservado)');
+        // Laboratório mantido limpo, sem elementos centrais
+        console.log('✅ Ambiente básico preparado (laboratório limpo)');
     }
 
     /**
