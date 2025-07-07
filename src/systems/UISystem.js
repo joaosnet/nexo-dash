@@ -16,6 +16,13 @@ export class UISystem {
         this.isVisible = false;
         this.uiStyles = new UIStyles();
         
+        // Estado do painel para reabertura
+        this.panelState = {
+            title: '',
+            content: '',
+            actions: []
+        };
+        
         // Elementos 3D da interface
         this.ui3D = {
             container: null,
@@ -866,11 +873,17 @@ export class UISystem {
         mainPanel.className = 'holographic-panel';
         mainPanel.style.cssText = this.uiStyles.getMainPanelStyles();
 
+        // Adicionar elementos decorativos futuristas
+        this.addPanelDecorations(mainPanel);
+
         // Criar título do painel
         const panelTitle = document.createElement('div');
         panelTitle.id = 'panel-title';
         panelTitle.className = 'panel-title';
         panelTitle.style.cssText = this.uiStyles.getPanelTitleStyles();
+
+        // Adicionar decorações ao título
+        this.addTitleDecorations(panelTitle);
 
         // Criar conteúdo do painel
         const panelContent = document.createElement('div');
@@ -895,6 +908,156 @@ export class UISystem {
         this.elements.panelTitle = panelTitle;
         this.elements.panelContent = panelContent;
         this.elements.panelActions = panelActions;
+    }
+
+    /**
+     * Adiciona decorações futuristas ao painel
+     * @param {HTMLElement} panel - Elemento do painel
+     */
+    addPanelDecorations(panel) {
+        // Bordas neon principais
+        const borderTop = document.createElement('div');
+        borderTop.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 20px;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, #00ffff, transparent);
+            box-shadow: 0 0 10px #00ffff;
+            z-index: 10;
+        `;
+        panel.appendChild(borderTop);
+
+        const borderLeft = document.createElement('div');
+        borderLeft.style.cssText = `
+            position: absolute;
+            top: 20px;
+            left: 0;
+            bottom: 20px;
+            width: 2px;
+            background: linear-gradient(180deg, transparent, #00ffff, #00ffff, transparent);
+            box-shadow: 0 0 10px #00ffff;
+            z-index: 10;
+        `;
+        panel.appendChild(borderLeft);
+
+        const borderRight = document.createElement('div');
+        borderRight.style.cssText = `
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #00ffff, #00ffff, transparent);
+            box-shadow: 0 0 10px #00ffff;
+            z-index: 10;
+        `;
+        panel.appendChild(borderRight);
+
+        const borderBottom = document.createElement('div');
+        borderBottom.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, #00ffff, #00ffff, transparent);
+            box-shadow: 0 0 10px #00ffff;
+            z-index: 10;
+        `;
+        panel.appendChild(borderBottom);
+
+        // Cantos decorativos
+        const cornerTL = document.createElement('div');
+        cornerTL.style.cssText = `
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ffff;
+            border-right: none;
+            border-bottom: none;
+            z-index: 15;
+        `;
+        panel.appendChild(cornerTL);
+
+        const cornerBR = document.createElement('div');
+        cornerBR.style.cssText = `
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ffff;
+            border-left: none;
+            border-top: none;
+            z-index: 15;
+        `;
+        panel.appendChild(cornerBR);
+
+        // Indicador de status (pequeno quadrado no canto superior direito)
+        const statusIndicator = document.createElement('div');
+        statusIndicator.style.cssText = `
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+            z-index: 20;
+            animation: pulse 2s infinite;
+        `;
+        panel.appendChild(statusIndicator);
+
+        // Adicionar animação de pulse
+        if (!document.getElementById('pulse-animation')) {
+            const style = document.createElement('style');
+            style.id = 'pulse-animation';
+            style.textContent = `
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    /**
+     * Adiciona decorações ao título
+     * @param {HTMLElement} title - Elemento do título
+     */
+    addTitleDecorations(title) {
+        // Linha decorativa antes do título
+        const beforeLine = document.createElement('div');
+        beforeLine.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff);
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        `;
+        title.appendChild(beforeLine);
+
+        // Linha decorativa depois do título
+        const afterLine = document.createElement('div');
+        afterLine.style.cssText = `
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, #00ffff, transparent);
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        `;
+        title.appendChild(afterLine);
     }
 
     /**
@@ -940,6 +1103,13 @@ export class UISystem {
 
         // Remover botão de reabertura se existir
         this.removeReopenButton();
+
+        // Salvar estado do painel para reabertura
+        this.panelState = {
+            title: title,
+            content: content,
+            actions: actions
+        };
 
         // Atualizar título
         if (this.elements.panelTitle) {
@@ -1014,71 +1184,74 @@ export class UISystem {
     }
 
     /**
-     * Remove o botão de reabertura se existir
+     * Remove o botão de reabertura 3D se existir
      */
     removeReopenButton() {
-        const reopenBtn = document.getElementById('reopen-hologram-button');
-        if (reopenBtn && reopenBtn.parentNode) {
-            reopenBtn.parentNode.removeChild(reopenBtn);
-            console.log('🗑️ Botão de reabertura removido');
+        if (!this.ui3D.container) {
+            return;
+        }
+
+        const reopenButton = this.ui3D.container.getObjectByName('reopen-3d-button');
+        if (reopenButton) {
+            // Remover do array de botões
+            const buttonIndex = this.ui3D.buttons.indexOf(reopenButton);
+            if (buttonIndex > -1) {
+                this.ui3D.buttons.splice(buttonIndex, 1);
+            }
+
+            // Limpar geometrias e materiais
+            reopenButton.traverse((child) => {
+                if (child.geometry) {
+                    child.geometry.dispose();
+                }
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(material => material.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            });
+
+            // Remover da cena
+            this.ui3D.container.remove(reopenButton);
+            console.log('🗑️ Botão 3D de reabertura removido');
         }
     }
 
     /**
-     * Cria o botão de reabertura apenas se não existir
+     * Cria o botão de reabertura 3D apenas se não existir
      */
     createReopenButton() {
         // Verificar se já existe
-        if (document.getElementById('reopen-hologram-button')) {
+        if (this.ui3D.container && this.ui3D.container.getObjectByName('reopen-3d-button')) {
             return;
         }
 
-        const reopenBtn = document.createElement('button');
-        reopenBtn.id = 'reopen-hologram-button';
-        reopenBtn.className = 'reopen-hologram-button holographic-button';
-        reopenBtn.textContent = 'Abrir Painel';
-        
-        // Estilizar o botão
-        reopenBtn.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 200;
-            padding: 12px 20px;
-            background: rgba(0, 255, 136, 0.2);
-            border: 2px solid #00ff88;
-            color: #00ff88;
-            border-radius: 8px;
-            font-family: 'Orbitron', monospace;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
-        `;
+        const threeSystem = this.app.getSystem('three');
+        if (!threeSystem || !this.ui3D.container) {
+            console.warn('⚠️ Sistema Three.js não disponível para botão 3D de reabertura');
+            return;
+        }
 
-        // Salvar o estado atual do painel para reabertura
-        const currentTitle = this.elements.panelTitle?.textContent || 'Nexo Dash';
-        const currentContent = this.elements.panelContent?.innerHTML || '';
-        
-        // Configurar evento de clique
-        reopenBtn.onclick = () => {
-            this.showPanel(currentTitle, currentContent, []);
-        };
-
-        // Adicionar efeitos hover inline
-        reopenBtn.addEventListener('mouseenter', () => {
-            reopenBtn.style.transform = 'translateY(-2px) scale(1.05)';
-            reopenBtn.style.boxShadow = '0 5px 25px rgba(0, 255, 136, 0.6)';
+        // Criar botão 3D "PANEL" no topo da tela junto com os outros
+        const reopenButton3D = this.create3DButton({
+            text: 'PANEL',
+            icon: '📋',
+            position: { x: 10, y: 6, z: 2 }, // Posição no topo, à direita dos outros
+            color: 0x88ff00, // Verde lima para destacar
+            callback: () => {
+                this.showPanel(
+                    this.panelState.title, 
+                    this.panelState.content, 
+                    this.panelState.actions
+                );
+            },
+            id: 'reopen-3d-button'
         });
 
-        reopenBtn.addEventListener('mouseleave', () => {
-            reopenBtn.style.transform = 'translateY(0) scale(1)';
-            reopenBtn.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
-        });
-
-        document.body.appendChild(reopenBtn);
-        console.log('🔄 Botão de reabertura criado');
+        this.ui3D.buttons.push(reopenButton3D);
+        console.log('🔄 Botão 3D de reabertura criado');
     }
 
     /**
