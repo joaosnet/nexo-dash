@@ -79,7 +79,7 @@ export class UISystem {
     }
 
     /**
-     * Cria botões de controle 3D flutuantes
+     * Cria botões de controle 3D com estilo terminal moderno
      */
     create3DControlButtons() {
         const threeSystem = this.app.getSystem('three');
@@ -88,103 +88,134 @@ export class UISystem {
             return;
         }
 
-        // Botão do holograma - posicionado no canto inferior direito da tela (mais próximo)
+        // Botões posicionados no topo da tela com estilo terminal moderno
         const hologramButton = this.create3DButton({
-            text: '👩‍🔬',
-            position: { x: 6, y: -2, z: 4 },
+            text: 'HOLO',
+            icon: '👩‍🔬',
+            position: { x: -6, y: 6, z: 2 },
             color: 0x00ff88,
             callback: () => this.toggleHologram3D(),
             id: 'hologram-3d-btn'
         });
 
-        // Botão de voz - posicionado à esquerda do botão do holograma
         const voiceButton = this.create3DButton({
-            text: '🔊',
-            position: { x: 6, y: -4, z: 4 },
+            text: 'VOICE',
+            icon: '🔊',
+            position: { x: -2, y: 6, z: 2 },
             color: 0x00ccff,
             callback: () => this.toggleVoice3D(),
             id: 'voice-3d-btn'
         });
 
-        // Botão de configurações - posicionado ainda mais à esquerda
         const settingsButton = this.create3DButton({
-            text: '⚙️',
-            position: { x: 6, y: -6, z: 4 },
+            text: 'CONFIG',
+            icon: '⚙️',
+            position: { x: 2, y: 6, z: 2 },
             color: 0xffaa00,
             callback: () => this.showSettings3D(),
             id: 'settings-3d-btn'
         });
 
-        this.ui3D.buttons.push(hologramButton, voiceButton, settingsButton);
+        const helpButton = this.create3DButton({
+            text: 'HELP',
+            icon: '❓',
+            position: { x: 6, y: 6, z: 2 },
+            color: 0xff6b6b,
+            callback: () => this.showHelp3D(),
+            id: 'help-3d-btn'
+        });
+
+        this.ui3D.buttons.push(hologramButton, voiceButton, settingsButton, helpButton);
 
         // Adicionar event listeners para interação
         this.setup3DInteractions();
 
-        console.log('🎮 Botões de controle 3D criados');
+        console.log('🎮 Botões de controle 3D estilo terminal criados');
     }
 
     /**
-     * Cria um botão 3D
+     * Cria um botão 3D com estilo terminal moderno
      * @param {Object} config - Configuração do botão
      * @returns {THREE.Group}
      */
     create3DButton(config) {
-        const { text, position, color, callback, id } = config;
+        const { text, icon, position, color, callback, id } = config;
         
         // Grupo do botão
         const buttonGroup = new THREE.Group();
         buttonGroup.name = id;
         buttonGroup.userData = { callback, isUI3DButton: true, originalColor: color };
 
-        // Geometria da base do botão (hexágono)
-        const shape = new THREE.Shape();
-        const radius = 0.8;
-        for (let i = 0; i <= 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            if (i === 0) {
-                shape.moveTo(x, y);
-            } else {
-                shape.lineTo(x, y);
-            }
-        }
+        // Base do botão estilo terminal (retangular com bordas chanfradas)
+        const baseGeometry = new THREE.BoxGeometry(3, 1.2, 0.3);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0a0a0a,
+            metalness: 0.8,
+            roughness: 0.2,
+            transparent: true,
+            opacity: 0.9
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        buttonGroup.add(base);
 
-        const extrudeSettings = {
-            depth: 0.2,
-            bevelEnabled: true,
-            bevelSegments: 2,
-            steps: 2,
-            bevelSize: 0.05,
-            bevelThickness: 0.05
-        };
+        // Painel superior luminoso
+        const panelGeometry = new THREE.BoxGeometry(2.8, 1, 0.05);
+        const panelMaterial = new THREE.MeshStandardMaterial({
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.4,
+            metalness: 0.3,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.8
+        });
+        const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+        panel.position.z = 0.2;
+        buttonGroup.add(panel);
 
-        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        
-        // Material com efeito holográfico
-        const material = new THREE.MeshPhongMaterial({
+        // Bordas estilo terminal (glow effect)
+        const edgeGeometry = new THREE.EdgesGeometry(panelGeometry);
+        const edgeMaterial = new THREE.LineBasicMaterial({
             color: color,
             transparent: true,
             opacity: 0.8,
-            emissive: new THREE.Color(color).multiplyScalar(0.3),
-            shininess: 100
+            linewidth: 3
         });
+        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+        edges.position.z = 0.21;
+        buttonGroup.add(edges);
 
-        const buttonMesh = new THREE.Mesh(geometry, material);
-        buttonMesh.castShadow = true;
-        buttonMesh.receiveShadow = true;
-        
-        // Texto 3D do botão
-        const textSprite = this.create3DText(text);
-        textSprite.position.set(0, 0, 0.3);
-        
-        // Efeito de partículas ao redor do botão
-        const particles = this.createButtonParticles(color);
-        
-        // Adicionar elementos ao grupo
-        buttonGroup.add(buttonMesh);
+        // Texto principal do botão (estilo terminal)
+        const textSprite = this.createTerminalText(text, color);
+        textSprite.position.set(-0.5, 0, 0.4);
         buttonGroup.add(textSprite);
-        buttonGroup.add(particles);
+
+        // Ícone do botão
+        const iconSprite = this.createTerminalIcon(icon, color);
+        iconSprite.position.set(0.8, 0, 0.4);
+        buttonGroup.add(iconSprite);
+
+        // Indicador de status (LED)
+        const ledGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+        const ledMaterial = new THREE.MeshStandardMaterial({
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.6,
+            metalness: 0.1,
+            roughness: 0.1
+        });
+        const led = new THREE.Mesh(ledGeometry, ledMaterial);
+        led.position.set(-1.2, 0.3, 0.25);
+        buttonGroup.add(led);
+
+        // Linhas de scan estilo terminal
+        const scanLines = this.createScanLines(color);
+        scanLines.position.z = 0.22;
+        buttonGroup.add(scanLines);
+
+        // Partículas de dados flutuantes
+        const dataParticles = this.createDataParticles(color);
+        buttonGroup.add(dataParticles);
         
         // Posicionar o botão
         buttonGroup.position.set(position.x, position.y, position.z);
@@ -192,32 +223,42 @@ export class UISystem {
         // Adicionar ao container 3D
         this.ui3D.container.add(buttonGroup);
         
-        // Animação de flutuação sutil
-        this.animateFloating(buttonGroup);
+        // Animação de terminal (pulsação e scan)
+        this.animateTerminalButton(buttonGroup);
         
         return buttonGroup;
     }
 
     /**
-     * Cria texto 3D para botões
+     * Cria texto estilo terminal
      * @param {string} text - Texto a ser exibido
+     * @param {number} color - Cor do texto
      * @returns {THREE.Sprite}
      */
-    create3DText(text) {
+    createTerminalText(text, color) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        canvas.width = 128;
-        canvas.height = 128;
+        canvas.width = 256;
+        canvas.height = 64;
 
-        // Desenhar texto
-        context.fillStyle = 'rgba(255, 255, 255, 0)';
+        // Fundo transparente
+        context.fillStyle = 'rgba(0, 0, 0, 0)';
         context.fillRect(0, 0, canvas.width, canvas.height);
         
-        context.font = 'bold 72px Arial';
-        context.fillStyle = '#ffffff';
+        // Texto estilo terminal com fonte monospace
+        context.font = 'bold 24px "Courier New", monospace';
+        context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+        context.strokeStyle = '#000000';
+        context.lineWidth = 2;
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(text, 64, 64);
+        
+        // Efeito de brilho
+        context.shadowColor = `#${color.toString(16).padStart(6, '0')}`;
+        context.shadowBlur = 10;
+        
+        context.strokeText(text, canvas.width / 2, canvas.height / 2);
+        context.fillText(text, canvas.width / 2, canvas.height / 2);
 
         // Criar sprite
         const texture = new THREE.CanvasTexture(canvas);
@@ -227,29 +268,89 @@ export class UISystem {
         });
         
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(1.5, 1.5, 1);
+        sprite.scale.set(2, 0.5, 1);
         
         return sprite;
     }
 
     /**
-     * Cria partículas ao redor do botão
+     * Cria ícone estilo terminal
+     * @param {string} icon - Ícone emoji
+     * @param {number} color - Cor de fundo
+     * @returns {THREE.Sprite}
+     */
+    createTerminalIcon(icon, color) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 64;
+        canvas.height = 64;
+
+        // Fundo com cor do terminal
+        const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, `rgba(${(color >> 16) & 255}, ${(color >> 8) & 255}, ${color & 255}, 0.8)`);
+        gradient.addColorStop(1, `rgba(${(color >> 16) & 255}, ${(color >> 8) & 255}, ${color & 255}, 0.3)`);
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Ícone
+        context.font = 'bold 32px Arial';
+        context.fillStyle = '#ffffff';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(icon, 32, 32);
+
+        // Criar sprite
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true
+        });
+        
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(0.8, 0.8, 1);
+        
+        return sprite;
+    }
+
+    /**
+     * Cria linhas de scan estilo terminal
+     * @param {number} color - Cor das linhas
+     * @returns {THREE.Group}
+     */
+    createScanLines(color) {
+        const group = new THREE.Group();
+        
+        for (let i = 0; i < 8; i++) {
+            const lineGeometry = new THREE.BoxGeometry(2.8, 0.02, 0.01);
+            const lineMaterial = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.3,
+                transparent: true,
+                opacity: 0.4
+            });
+            const line = new THREE.Mesh(lineGeometry, lineMaterial);
+            line.position.y = -0.4 + (i * 0.12);
+            group.add(line);
+        }
+        
+        return group;
+    }
+
+    /**
+     * Cria partículas de dados flutuantes
      * @param {number} color - Cor das partículas
      * @returns {THREE.Points}
      */
-    createButtonParticles(color) {
-        const particleCount = 20;
+    createDataParticles(color) {
+        const particleCount = 15;
         const positions = new Float32Array(particleCount * 3);
         
         for (let i = 0; i < particleCount; i++) {
             const i3 = i * 3;
-            const radius = 1.5 + Math.random() * 0.5;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.random() * Math.PI * 2;
-            
-            positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-            positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-            positions[i3 + 2] = radius * Math.cos(phi);
+            positions[i3] = (Math.random() - 0.5) * 4;
+            positions[i3 + 1] = (Math.random() - 0.5) * 2;
+            positions[i3 + 2] = Math.random() * 0.5 + 0.5;
         }
         
         const geometry = new THREE.BufferGeometry();
@@ -257,13 +358,155 @@ export class UISystem {
         
         const material = new THREE.PointsMaterial({
             color: color,
-            size: 0.05,
+            size: 0.04,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending
         });
         
         const particles = new THREE.Points(geometry, material);
         return particles;
+    }
+
+    /**
+     * Animação estilo terminal para botões
+     * @param {THREE.Group} buttonGroup - Grupo do botão
+     */
+    animateTerminalButton(buttonGroup) {
+        const originalY = buttonGroup.position.y;
+        
+        const animate = () => {
+            if (buttonGroup && buttonGroup.parent) {
+                const time = Date.now() * 0.001;
+                
+                // Pulsação suave
+                buttonGroup.position.y = originalY + Math.sin(time * 2) * 0.02;
+                
+                // Efeito de scan nas linhas
+                buttonGroup.traverse((child) => {
+                    if (child.isMesh && child.material && child.material.emissive) {
+                        const intensity = 0.3 + Math.sin(time * 3 + child.position.y * 5) * 0.2;
+                        child.material.emissiveIntensity = Math.max(0.1, intensity);
+                    }
+                });
+                
+                // Movimento das partículas
+                const particles = buttonGroup.children.find(child => child.isPoints);
+                if (particles) {
+                    particles.rotation.z = time * 0.1;
+                    const positions = particles.geometry.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 3) {
+                        positions[i + 2] = Math.sin(time + i) * 0.1 + 0.5;
+                    }
+                    particles.geometry.attributes.position.needsUpdate = true;
+                }
+                
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        animate();
+    }
+
+    /**
+     * Cria efeito digital de clique
+     * @param {THREE.Group} button - Botão clicado
+     */
+    createDigitalClickEffect(button) {
+        const effectGroup = new THREE.Group();
+        
+        // Criar múltiplas ondas digitais
+        for (let i = 0; i < 3; i++) {
+            const waveGeometry = new THREE.RingGeometry(0.5, 0.6, 16);
+            const waveMaterial = new THREE.MeshBasicMaterial({
+                color: button.userData.originalColor,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            const wave = new THREE.Mesh(waveGeometry, waveMaterial);
+            wave.rotation.x = Math.PI / 2;
+            wave.position.z = 0.1;
+            effectGroup.add(wave);
+            
+            // Animação de expansão
+            const delay = i * 100;
+            setTimeout(() => {
+                const animateWave = () => {
+                    if (wave.scale.x < 3) {
+                        wave.scale.x += 0.1;
+                        wave.scale.y += 0.1;
+                        wave.material.opacity *= 0.95;
+                        requestAnimationFrame(animateWave);
+                    } else {
+                        effectGroup.remove(wave);
+                    }
+                };
+                animateWave();
+            }, delay);
+        }
+        
+        // Dados digitais voando
+        for (let i = 0; i < 8; i++) {
+            const dataSprite = this.createDataBit(button.userData.originalColor);
+            const angle = (i / 8) * Math.PI * 2;
+            dataSprite.position.set(
+                Math.cos(angle) * 0.5,
+                Math.sin(angle) * 0.5,
+                0.2
+            );
+            effectGroup.add(dataSprite);
+            
+            // Animar dados voando para fora
+            const animateData = () => {
+                dataSprite.position.x += Math.cos(angle) * 0.05;
+                dataSprite.position.y += Math.sin(angle) * 0.05;
+                dataSprite.material.opacity *= 0.98;
+                
+                if (dataSprite.material.opacity > 0.1) {
+                    requestAnimationFrame(animateData);
+                } else {
+                    effectGroup.remove(dataSprite);
+                }
+            };
+            setTimeout(() => animateData(), i * 50);
+        }
+        
+        button.add(effectGroup);
+        
+        // Remover grupo após animação
+        setTimeout(() => {
+            button.remove(effectGroup);
+        }, 2000);
+    }
+
+    /**
+     * Cria um bit de dados para efeito
+     * @param {number} color - Cor do bit
+     * @returns {THREE.Sprite}
+     */
+    createDataBit(color) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 32;
+        canvas.height = 32;
+        
+        context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+        context.font = 'bold 16px "Courier New"';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(Math.random() > 0.5 ? '1' : '0', 16, 16);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true
+        });
+        
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(0.2, 0.2, 1);
+        
+        return sprite;
     }
 
     /**
@@ -384,50 +627,68 @@ export class UISystem {
     }
 
     /**
-     * Aplica efeito de hover ao botão
+     * Aplica efeito de hover ao botão terminal
      * @param {THREE.Group} button - Botão
      */
     applyButtonHover(button) {
-        button.scale.set(1.1, 1.1, 1.1);
+        button.scale.set(1.05, 1.05, 1.05);
         
         button.traverse((child) => {
-            if (child.isMesh && child.material) {
-                child.material.emissive.setHex(button.userData.originalColor).multiplyScalar(0.5);
+            if (child.isMesh && child.material && child.material.emissive) {
+                child.material.emissiveIntensity = Math.min(1.0, child.material.emissiveIntensity * 1.5);
+            }
+            if (child.isLineSegments && child.material) {
+                child.material.opacity = 1.0;
             }
         });
     }
 
     /**
-     * Remove efeito de hover do botão
+     * Remove efeito de hover do botão terminal
      * @param {THREE.Group} button - Botão
      */
     resetButtonHover(button) {
         button.scale.set(1, 1, 1);
         
         button.traverse((child) => {
-            if (child.isMesh && child.material) {
-                child.material.emissive.setHex(button.userData.originalColor).multiplyScalar(0.3);
+            if (child.isMesh && child.material && child.material.emissive) {
+                child.material.emissiveIntensity = 0.4;
+            }
+            if (child.isLineSegments && child.material) {
+                child.material.opacity = 0.8;
             }
         });
     }
 
     /**
-     * Cria efeito de clique no botão
+     * Cria efeito de clique no botão terminal
      * @param {THREE.Group} button - Botão
      */
     triggerClickEffect(button) {
-        // Animação de "pulse"
-        const originalScale = { x: 1.1, y: 1.1, z: 1.1 };
+        // Animação de "digital pulse"
+        const originalScale = { x: 1.05, y: 1.05, z: 1.05 };
         
-        button.scale.set(1.3, 1.3, 1.3);
+        button.scale.set(1.15, 1.15, 1.15);
         
-        // Retornar ao tamanho normal
+        // Flash intenso
+        button.traverse((child) => {
+            if (child.isMesh && child.material && child.material.emissive) {
+                child.material.emissiveIntensity = 1.0;
+            }
+        });
+        
+        // Retornar ao estado normal
         setTimeout(() => {
             button.scale.set(originalScale.x, originalScale.y, originalScale.z);
-        }, 150);
+            button.traverse((child) => {
+                if (child.isMesh && child.material && child.material.emissive) {
+                    child.material.emissiveIntensity = 0.6;
+                }
+            });
+        }, 100);
         
-        // Efeito de partículas
-        this.createClickParticles(button);
+        // Efeito de dados digitais
+        this.createDigitalClickEffect(button);
     }
 
     /**
@@ -554,6 +815,41 @@ export class UISystem {
                     <button onclick="window.setGraphicsQuality('medium')" class="holographic-button" style="flex: 1;">Média</button>
                     <button onclick="window.setGraphicsQuality('high')" class="holographic-button" style="flex: 1;">Alta</button>
                 </div>
+            </div>
+            `,
+            []
+        );
+    }
+
+    /**
+     * Mostra ajuda e guia de uso
+     */
+    showHelp3D() {
+        this.showPanel(
+            'Guia de Uso - Nexo Dash',
+            `
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <h3 style="color: #ff6b6b; margin: 0;">❓ Bem-vindo ao Laboratório!</h3>
+                <p>Esta é uma experiência imersiva para aprender desenvolvimento com Dash Python.</p>
+                
+                <h3 style="color: #00ff88; margin: 0;">🎯 Objetivos</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>Configurar ambiente de desenvolvimento Python</li>
+                    <li>Aprender a estrutura de projetos profissionais</li>
+                    <li>Criar dashboards interativos com Dash</li>
+                    <li>Trabalhar com dados reais (Heart Disease)</li>
+                </ul>
+                
+                <h3 style="color: #00ccff; margin: 0;">🕹️ Controles</h3>
+                <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px;">
+                    <span style="color: #00ff88;">HOLO:</span> <span>Liga/desliga a Dra. Ana Turing</span>
+                    <span style="color: #00ccff;">VOICE:</span> <span>Controla narração por voz</span>
+                    <span style="color: #ffaa00;">CONFIG:</span> <span>Configurações do laboratório</span>
+                    <span style="color: #ff6b6b;">HELP:</span> <span>Este guia de ajuda</span>
+                </div>
+                
+                <h3 style="color: #9c88ff; margin: 0;">🚀 Próximos Passos</h3>
+                <p>Comece pelo <strong>Módulo 0: Calibração da Estação</strong> para configurar seu ambiente!</p>
             </div>
             `,
             []
