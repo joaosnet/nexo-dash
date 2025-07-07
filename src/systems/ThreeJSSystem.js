@@ -14,6 +14,21 @@ export class ThreeJSSystem {
         // Subsistemas
         this.drTuringManager = null;
         this.environmentManager = null;
+        
+        // Sistema de movimento WASD
+        this.wasdControls = {
+            enabled: true,
+            moveSpeed: 0.5,
+            keys: {
+                w: false,
+                a: false,
+                s: false,
+                d: false,
+                shift: false,
+                space: false
+            },
+            velocity: new THREE.Vector3()
+        };
     }
 
     /**
@@ -154,11 +169,17 @@ export class ThreeJSSystem {
         
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // Configurações avançadas de sombra
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras mais suaves
+        this.renderer.shadowMap.autoUpdate = true;
+        
+        // Configurações de renderização para melhor qualidade
         this.renderer.outputEncoding = THREE.sRGBEncoding;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.2;
+        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.physicallyCorrectLights = true;
 
         // Adicionar ao DOM
         const container = document.getElementById('threejs-container');
@@ -168,7 +189,7 @@ export class ThreeJSSystem {
             console.warn('⚠️ Container threejs-container não encontrado');
         }
         
-        console.log('🖼️ Renderizador configurado');
+        console.log('🖼️ Renderizador configurado com sombras avançadas');
     }
 
     /**
@@ -208,30 +229,46 @@ export class ThreeJSSystem {
      * Configura a iluminação da cena
      */
     setupLighting() {
-        // Luz ambiente
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+        // Luz ambiente mais suave
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
         this.scene.add(ambientLight);
 
-        // Luz direcional principal
-        const directionalLight = new THREE.DirectionalLight(0x00ff88, 1);
-        directionalLight.position.set(10, 10, 5);
+        // Luz direcional principal com sombras aprimoradas
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight.position.set(20, 30, 10);
         directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
+        
+        // Configurações de sombra mais detalhadas
+        directionalLight.shadow.mapSize.width = 4096;
+        directionalLight.shadow.mapSize.height = 4096;
         directionalLight.shadow.camera.near = 0.5;
         directionalLight.shadow.camera.far = 100;
         directionalLight.shadow.camera.left = -50;
         directionalLight.shadow.camera.right = 50;
         directionalLight.shadow.camera.top = 50;
         directionalLight.shadow.camera.bottom = -50;
+        directionalLight.shadow.bias = -0.0001;
+        directionalLight.shadow.normalBias = 0.02;
+        
         this.scene.add(directionalLight);
 
-        // Luz de preenchimento
-        const fillLight = new THREE.PointLight(0x88ccff, 0.6, 30);
-        fillLight.position.set(-10, 5, -5);
+        // Luz de preenchimento para reduzir sombras muito escuras
+        const fillLight = new THREE.PointLight(0x88ccff, 0.4, 50);
+        fillLight.position.set(-20, 10, -10);
+        fillLight.castShadow = true;
+        fillLight.shadow.mapSize.width = 1024;
+        fillLight.shadow.mapSize.height = 1024;
         this.scene.add(fillLight);
 
-        console.log('💡 Iluminação completa configurada');
+        // Luz ambiente colorida para o laboratório
+        const labLight = new THREE.PointLight(0x00ff88, 0.6, 30);
+        labLight.position.set(0, 8, 0);
+        labLight.castShadow = true;
+        labLight.shadow.mapSize.width = 2048;
+        labLight.shadow.mapSize.height = 2048;
+        this.scene.add(labLight);
+
+        console.log('💡 Iluminação completa configurada com sombras detalhadas');
     }
 
     /**
@@ -300,6 +337,146 @@ export class ThreeJSSystem {
         window.addEventListener('resize', () => {
             this.onWindowResize();
         });
+        
+        // Configurar controles WASD
+        this.setupWASDControls();
+    }
+
+    /**
+     * Configura controles de movimento WASD
+     */
+    setupWASDControls() {
+        if (!this.wasdControls.enabled) return;
+
+        // Event listeners para teclas
+        window.addEventListener('keydown', (event) => {
+            this.onKeyDown(event);
+        });
+
+        window.addEventListener('keyup', (event) => {
+            this.onKeyUp(event);
+        });
+
+        console.log('🎮 Controles WASD configurados');
+        console.log('📋 Controles disponíveis:');
+        console.log('   W/S: Mover para frente/trás');
+        console.log('   A/D: Mover para esquerda/direita');
+        console.log('   Shift: Mover para baixo');
+        console.log('   Space: Mover para cima');
+    }
+
+    /**
+     * Manipula tecla pressionada
+     * @param {KeyboardEvent} event 
+     */
+    onKeyDown(event) {
+        if (!this.wasdControls.enabled) return;
+
+        switch(event.code) {
+            case 'KeyW':
+                this.wasdControls.keys.w = true;
+                break;
+            case 'KeyA':
+                this.wasdControls.keys.a = true;
+                break;
+            case 'KeyS':
+                this.wasdControls.keys.s = true;
+                break;
+            case 'KeyD':
+                this.wasdControls.keys.d = true;
+                break;
+            case 'ShiftLeft':
+            case 'ShiftRight':
+                this.wasdControls.keys.shift = true;
+                break;
+            case 'Space':
+                this.wasdControls.keys.space = true;
+                event.preventDefault(); // Evitar scroll da página
+                break;
+        }
+    }
+
+    /**
+     * Manipula tecla solta
+     * @param {KeyboardEvent} event 
+     */
+    onKeyUp(event) {
+        if (!this.wasdControls.enabled) return;
+
+        switch(event.code) {
+            case 'KeyW':
+                this.wasdControls.keys.w = false;
+                break;
+            case 'KeyA':
+                this.wasdControls.keys.a = false;
+                break;
+            case 'KeyS':
+                this.wasdControls.keys.s = false;
+                break;
+            case 'KeyD':
+                this.wasdControls.keys.d = false;
+                break;
+            case 'ShiftLeft':
+            case 'ShiftRight':
+                this.wasdControls.keys.shift = false;
+                break;
+            case 'Space':
+                this.wasdControls.keys.space = false;
+                break;
+        }
+    }
+
+    /**
+     * Atualiza movimento da câmera baseado nas teclas WASD
+     * @param {number} deltaTime 
+     */
+    updateWASDMovement(deltaTime) {
+        if (!this.wasdControls.enabled || !this.camera) return;
+
+        const keys = this.wasdControls.keys;
+        const speed = this.wasdControls.moveSpeed;
+        const velocity = this.wasdControls.velocity;
+
+        // Reset velocity
+        velocity.set(0, 0, 0);
+
+        // Obter direções da câmera
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        
+        const right = new THREE.Vector3();
+        right.crossVectors(direction, this.camera.up).normalize();
+
+        // Calcular movimento baseado nas teclas pressionadas
+        if (keys.w) {
+            velocity.add(direction.clone().multiplyScalar(speed));
+        }
+        if (keys.s) {
+            velocity.add(direction.clone().multiplyScalar(-speed));
+        }
+        if (keys.a) {
+            velocity.add(right.clone().multiplyScalar(-speed));
+        }
+        if (keys.d) {
+            velocity.add(right.clone().multiplyScalar(speed));
+        }
+        if (keys.space) {
+            velocity.y += speed;
+        }
+        if (keys.shift) {
+            velocity.y -= speed;
+        }
+
+        // Aplicar movimento à câmera
+        if (velocity.length() > 0) {
+            this.camera.position.add(velocity.multiplyScalar(deltaTime * 60));
+            
+            // Atualizar target dos controles se existir
+            if (this.controls && this.controls.target) {
+                this.controls.target.add(velocity.clone().multiplyScalar(deltaTime * 60));
+                this.controls.update();
+            }
+        }
     }
 
     /**
@@ -326,6 +503,9 @@ export class ThreeJSSystem {
             const deltaTime = (currentTime - (this.app.state.lastTime || currentTime)) / 1000;
             this.app.setState({ lastTime: currentTime });
             
+            // Atualizar movimento WASD
+            this.updateWASDMovement(deltaTime);
+            
             // Atualizar subsistemas
             if (this.drTuringManager) {
                 this.drTuringManager.update(deltaTime);
@@ -347,7 +527,7 @@ export class ThreeJSSystem {
         };
         
         animate();
-        console.log('🎬 Loop de animação iniciado');
+        console.log('🎬 Loop de animação iniciado com controles WASD');
     }
 
     /**
@@ -423,6 +603,38 @@ export class ThreeJSSystem {
         } else {
             console.warn('⚠️ Dr. Turing Manager não disponível para animações');
         }
+    }
+
+    /**
+     * Habilita/desabilita controles WASD
+     * @param {boolean} enabled 
+     */
+    setWASDEnabled(enabled) {
+        this.wasdControls.enabled = enabled;
+        console.log(`🎮 Controles WASD ${enabled ? 'habilitados' : 'desabilitados'}`);
+    }
+
+    /**
+     * Define a velocidade de movimento WASD
+     * @param {number} speed 
+     */
+    setWASDSpeed(speed) {
+        this.wasdControls.moveSpeed = Math.max(0.1, Math.min(2.0, speed));
+        console.log(`🏃 Velocidade WASD definida para: ${this.wasdControls.moveSpeed}`);
+    }
+
+    /**
+     * Obtém o estado atual dos controles WASD
+     * @returns {Object}
+     */
+    getWASDState() {
+        return {
+            enabled: this.wasdControls.enabled,
+            speed: this.wasdControls.moveSpeed,
+            activeKeys: Object.keys(this.wasdControls.keys).filter(key => 
+                this.wasdControls.keys[key]
+            )
+        };
     }
 
     /**

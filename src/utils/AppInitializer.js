@@ -8,6 +8,7 @@ import { UISystem } from '../systems/UISystem.js';
 import { ModuleSystem } from '../systems/ModuleSystem.js';
 import { VoiceSystem } from './VoiceSystem.js';
 import { LoadingUtils } from './LoadingUtils.js';
+import { testMovementSystem } from './MovementTestSuite.js';
 
 export class AppInitializer {
     constructor() {
@@ -187,11 +188,15 @@ export class AppInitializer {
                     } else {
                         console.error('❌ Sistema UI não disponível');
                     }
+                },
+                testMovement: async () => {
+                    console.log('🎮 Testando sistema de movimento...');
+                    await testMovementSystem(window.app);
                 }
             };
             
             console.log('🔧 Debug ativo. Comandos: window.debug.*');
-            console.log('🔊 testSpeech() | 👩‍🔬 testDrTuring() | 🚀 forceStartModule() | 🖥️ checkUI()');
+            console.log('🔊 testSpeech() | 👩‍🔬 testDrTuring() | 🚀 forceStartModule() | 🖥️ checkUI() | 🎮 testMovement()');
         }
     }
 }

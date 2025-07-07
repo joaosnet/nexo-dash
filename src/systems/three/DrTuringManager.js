@@ -250,6 +250,14 @@ export class DrTuringManager {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+                
+                // Melhorar propriedades do material para sombras
+                if (child.material) {
+                    child.material.needsUpdate = true;
+                    if (child.material.isMeshPhongMaterial || child.material.isMeshStandardMaterial) {
+                        child.material.shadowSide = THREE.DoubleSide;
+                    }
+                }
             }
         });
         

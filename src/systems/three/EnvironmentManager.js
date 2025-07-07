@@ -51,9 +51,23 @@ export class EnvironmentManager {
         gridHelper.name = 'laboratory-grid';
         this.scene.add(gridHelper);
         
+        // Adicionar um plano para receber sombras
+        const shadowPlaneGeometry = new THREE.PlaneGeometry(50, 50);
+        const shadowPlaneMaterial = new THREE.ShadowMaterial({
+            opacity: 0.3,
+            transparent: true
+        });
+        const shadowPlane = new THREE.Mesh(shadowPlaneGeometry, shadowPlaneMaterial);
+        shadowPlane.rotation.x = -Math.PI / 2;
+        shadowPlane.position.y = -0.01; // Ligeiramente abaixo do grid
+        shadowPlane.receiveShadow = true;
+        shadowPlane.name = 'shadow-plane';
+        this.scene.add(shadowPlane);
+        
         this.laboratoryElements.set('grid', gridHelper);
+        this.laboratoryElements.set('shadowPlane', shadowPlane);
 
-        console.log('🏗️ Ambiente do laboratório criado (apenas piso quadriculado)');
+        console.log('🏗️ Ambiente do laboratório criado (piso quadriculado + plano de sombras)');
     }
 
     /**
@@ -187,14 +201,23 @@ export class EnvironmentManager {
             
             // Desabilitar animações por padrão
             model.userData.animationDisabled = true;
-            
-            // Configurar sombras
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
+                  // Configurar sombras
+        model.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                
+                // Forçar atualização do material para sombras
+                if (child.material) {
+                    child.material.needsUpdate = true;
+                    
+                    // Se for MeshStandardMaterial, ajustar propriedades para melhor recepção de sombra
+                    if (child.material.isMeshStandardMaterial) {
+                        child.material.shadowSide = THREE.DoubleSide;
+                    }
                 }
-            });
+            }
+        });
             
             // Adicionar animações específicas
             this.addModelAnimation(model, config.name);
