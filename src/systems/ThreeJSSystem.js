@@ -247,7 +247,7 @@ export class ThreeJSSystem {
         directionalLight.shadow.camera.right = 50;
         directionalLight.shadow.camera.top = 50;
         directionalLight.shadow.camera.bottom = -50;
-        directionalLight.shadow.bias = -0.0001;
+        directionalLight.shadow.bias = -0.0005; // Ajuste fino no bias
         directionalLight.shadow.normalBias = 0.02;
         
         this.scene.add(directionalLight);
@@ -255,17 +255,13 @@ export class ThreeJSSystem {
         // Luz de preenchimento para reduzir sombras muito escuras
         const fillLight = new THREE.PointLight(0x88ccff, 0.4, 50);
         fillLight.position.set(-20, 10, -10);
-        fillLight.castShadow = true;
-        fillLight.shadow.mapSize.width = 1024;
-        fillLight.shadow.mapSize.height = 1024;
+        fillLight.castShadow = false; // Desativar sombra para a luz de preenchimento
         this.scene.add(fillLight);
 
         // Luz ambiente colorida para o laboratório
         const labLight = new THREE.PointLight(0x00ff88, 0.6, 30);
         labLight.position.set(0, 8, 0);
-        labLight.castShadow = true;
-        labLight.shadow.mapSize.width = 2048;
-        labLight.shadow.mapSize.height = 2048;
+        labLight.castShadow = false; // Desativar sombra para a luz do laboratório
         this.scene.add(labLight);
 
         console.log('💡 Iluminação completa configurada com sombras detalhadas');
