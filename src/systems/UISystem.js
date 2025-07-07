@@ -1258,12 +1258,12 @@ export class UISystem {
             position: { x: 10, y: 6, z: 2 }, // Posição no topo, à direita dos outros
             color: 0x88ff00, // Verde lima para destacar
             callback: () => {
-                // Abrir informações dos módulos
-                this.showPanel(
-                    'Módulos de Aprendizado',
-                    '<div>Informações sobre os módulos...</div>',
-                    [] // Adicionar ações específicas dos módulos, se necessário
-                );
+                const moduleSystem = this.app.getSystem('module');
+                if (moduleSystem) {
+                    moduleSystem.showCurrentStep();
+                } else {
+                    console.error('❌ Sistema de módulos não disponível');
+                }
             },
             id: 'reopen-3d-button'
         });
