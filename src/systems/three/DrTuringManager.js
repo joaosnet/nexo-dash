@@ -107,19 +107,13 @@ export class DrTuringManager {
         // Remover modelo anterior se existir
         this.removePreviousModel();
 
-        // Verificar suporte a FBX
-        const hasFBXSupport = this.checkFBXSupport();
+        console.log('👩‍🔬 Criando modelo geométrico da Dra. Turing...');
         
         try {
-            if (hasFBXSupport) {
-                console.log('🎯 Tentando carregar modelo FBX realista...');
-                await this.loadFBXModel();
-            } else {
-                console.log('⚠️ FBXLoader não disponível, usando modelo GLB...');
-                await this.loadGLBModel();
-            }
+            this.createGeometricDrTuring();
+            console.log('✅ Modelo geométrico da Dra. Turing criado');
         } catch (error) {
-            console.error('❌ Erro ao carregar modelo:', error);
+            console.error('❌ Erro ao criar modelo geométrico:', error);
             this.createPlaceholder();
         } finally {
             this.isLoading = false;
@@ -127,15 +121,221 @@ export class DrTuringManager {
     }
 
     /**
-     * Verifica se há suporte para carregamento FBX
-     * @returns {boolean}
+     * Cria modelo geométrico da Dra. Turing
      */
-    checkFBXSupport() {
-        return (
-            typeof THREE !== 'undefined' && 
-            typeof THREE.FBXLoader !== 'undefined' && 
-            typeof fflate !== 'undefined'
-        );
+    createGeometricDrTuring() {
+        const drTuringGroup = new THREE.Group();
+        
+        // Corpo (vestido/jaleco científico)
+        const bodyGeometry = new THREE.ConeGeometry(1, 3, 8);
+        const bodyMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.9,
+            emissive: 0x222244,
+            emissiveIntensity: 0.1
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 1.5;
+        drTuringGroup.add(body);
+        
+        // Cabeça
+        const headGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+        const headMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffdbac,
+            transparent: true,
+            opacity: 0.95
+        });
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.y = 3.5;
+        drTuringGroup.add(head);
+        
+        // Cabelo
+        const hairGeometry = new THREE.SphereGeometry(0.65, 16, 12);
+        const hairMaterial = new THREE.MeshPhongMaterial({
+            color: 0x4a3428,
+            transparent: true,
+            opacity: 0.9
+        });
+        const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+        hair.position.y = 3.8;
+        hair.scale.y = 0.8;
+        drTuringGroup.add(hair);
+        
+        // Óculos
+        const glassesGroup = new THREE.Group();
+        
+        // Armação dos óculos
+        const frameGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 16);
+        const frameMaterial = new THREE.MeshPhongMaterial({
+            color: 0x333333,
+            metalness: 0.8
+        });
+        
+        // Lente esquerda
+        const leftFrame = new THREE.Mesh(frameGeometry, frameMaterial);
+        leftFrame.position.set(-0.3, 0, 0.5);
+        leftFrame.rotation.y = Math.PI / 2;
+        glassesGroup.add(leftFrame);
+        
+        // Lente direita
+        const rightFrame = new THREE.Mesh(frameGeometry, frameMaterial);
+        rightFrame.position.set(0.3, 0, 0.5);
+        rightFrame.rotation.y = Math.PI / 2;
+        glassesGroup.add(rightFrame);
+        
+        // Ponte dos óculos
+        const bridgeGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.3);
+        const bridge = new THREE.Mesh(bridgeGeometry, frameMaterial);
+        bridge.rotation.z = Math.PI / 2;
+        bridge.position.set(0, 0, 0.5);
+        glassesGroup.add(bridge);
+        
+        glassesGroup.position.y = 3.6;
+        drTuringGroup.add(glassesGroup);
+        
+        // Braços
+        for (let i = 0; i < 2; i++) {
+            const armGeometry = new THREE.CylinderGeometry(0.15, 0.12, 2);
+            const arm = new THREE.Mesh(armGeometry, bodyMaterial);
+            arm.position.set(i === 0 ? -1.2 : 1.2, 2.5, 0);
+            arm.rotation.z = i === 0 ? Math.PI / 6 : -Math.PI / 6;
+            drTuringGroup.add(arm);
+        }
+        
+        // Tablet/Prancheta (representando conhecimento científico)
+        const tabletGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.05);
+        const tabletMaterial = new THREE.MeshPhongMaterial({
+            color: 0x2c3e50,
+            emissive: 0x001122,
+            emissiveIntensity: 0.3
+        });
+        const tablet = new THREE.Mesh(tabletGeometry, tabletMaterial);
+        tablet.position.set(0.8, 2, 0.8);
+        tablet.rotation.y = -Math.PI / 4;
+        tablet.rotation.x = -Math.PI / 8;
+        drTuringGroup.add(tablet);
+        
+        // "Tela" do tablet com dados/gráficos
+        const screenGeometry = new THREE.BoxGeometry(0.6, 1, 0.01);
+        const screenMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff88,
+            emissive: 0x00ff88,
+            emissiveIntensity: 0.6,
+            transparent: true,
+            opacity: 0.8
+        });
+        const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+        screen.position.set(0, 0, 0.03);
+        tablet.add(screen);
+        
+        // Partículas de "dados" ao redor da Dra. Turing
+        this.createDataParticles(drTuringGroup);
+        
+        // Configurar modelo
+        drTuringGroup.position.set(this.position.x, this.position.y, this.position.z);
+        drTuringGroup.rotation.set(this.rotation.x, this.rotation.y, this.rotation.z);
+        drTuringGroup.scale.set(this.scale.x, this.scale.y, this.scale.z);
+        drTuringGroup.name = 'dr-turing-model';
+        
+        // Inicialmente invisível
+        drTuringGroup.visible = false;
+        
+        // Adicionar à cena
+        this.scene.add(drTuringGroup);
+        this.model = drTuringGroup;
+        
+        // Configurar sombras
+        drTuringGroup.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        
+        // Adicionar animação idle
+        this.addIdleAnimation();
+        
+        console.log('✅ Modelo geométrico da Dra. Turing criado');
+    }
+
+    /**
+     * Cria partículas de dados ao redor da Dra. Turing
+     * @param {THREE.Group} group - Grupo da Dra. Turing
+     */
+    createDataParticles(group) {
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleCount = 30;
+        const positions = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            // Partículas em órbita ao redor da Dra. Turing
+            const radius = 2 + Math.random() * 2;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI;
+            
+            positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i3 + 1] = 1 + Math.random() * 4;
+            positions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0x00ffff,
+            size: 0.1,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        particles.name = 'data-particles';
+        group.add(particles);
+        
+        // Animar partículas
+        this.animateDataParticles(particles);
+    }
+
+    /**
+     * Anima partículas de dados
+     * @param {THREE.Points} particles - Partículas a animar
+     */
+    animateDataParticles(particles) {
+        const animate = () => {
+            if (particles && particles.parent) {
+                particles.rotation.y += 0.01;
+                particles.rotation.x += 0.005;
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+    }
+
+    /**
+     * Adiciona animação idle à Dra. Turing
+     */
+    addIdleAnimation() {
+        if (!this.model) return;
+        
+        const animate = () => {
+            if (this.model && this.model.parent && this.model.visible) {
+                const time = Date.now() * 0.001;
+                
+                // Movimento sutil de flutuação
+                this.model.position.y = this.position.y + Math.sin(time * 0.5) * 0.1;
+                
+                // Pequena rotação do tablet
+                const tablet = this.model.getObjectByName('tablet');
+                if (tablet) {
+                    tablet.rotation.y = -Math.PI / 4 + Math.sin(time * 0.3) * 0.1;
+                }
+                
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
     }
 
     /**

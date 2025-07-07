@@ -253,7 +253,7 @@ export class ModuleSystem {
             // Carregar modelos básicos primeiro, depois blueprint
             setTimeout(async () => {
                 // Carregar servidor primeiro (modelo básico) - SEM animação
-                await threeSystem.environmentManager.loadBasicLabModels();
+                threeSystem.environmentManager.createBasicLabModels();
                 
                 // Depois carregar blueprint 3D
                 threeSystem.environmentManager.createProjectStructure();
@@ -280,7 +280,7 @@ export class ModuleSystem {
             console.log('🚀 Carregando modelos avançados do laboratório...');
             
             setTimeout(async () => {
-                await threeSystem.environmentManager.loadAdvancedLabModels();
+                threeSystem.environmentManager.createAdvancedLabModels();
                 
                 // Ativar apenas a animação do servidor para demonstração
                 threeSystem.environmentManager.startModelAnimations(['server']);
@@ -310,7 +310,7 @@ export class ModuleSystem {
             // Carregar modelos básicos primeiro, depois blueprint
             setTimeout(async () => {
                 // Carregar servidor primeiro (modelo básico)
-                await threeSystem.environmentManager.loadBasicLabModels();
+                threeSystem.environmentManager.createBasicLabModels();
                 
                 // Criar a estrutura do projeto 3D
                 threeSystem.environmentManager.createProjectStructure();

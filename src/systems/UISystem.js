@@ -88,28 +88,28 @@ export class UISystem {
             return;
         }
 
-        // Botão do holograma - posicionado no canto superior direito do campo de visão
+        // Botão do holograma - posicionado no canto inferior direito da tela (mais próximo)
         const hologramButton = this.create3DButton({
             text: '👩‍🔬',
-            position: { x: 8, y: 4, z: 2 },
+            position: { x: 6, y: -2, z: 4 },
             color: 0x00ff88,
             callback: () => this.toggleHologram3D(),
             id: 'hologram-3d-btn'
         });
 
-        // Botão de voz - posicionado abaixo do botão do holograma
+        // Botão de voz - posicionado à esquerda do botão do holograma
         const voiceButton = this.create3DButton({
             text: '🔊',
-            position: { x: 8, y: 2, z: 2 },
+            position: { x: 6, y: -4, z: 4 },
             color: 0x00ccff,
             callback: () => this.toggleVoice3D(),
             id: 'voice-3d-btn'
         });
 
-        // Botão de configurações - posicionado ainda mais abaixo
+        // Botão de configurações - posicionado ainda mais à esquerda
         const settingsButton = this.create3DButton({
             text: '⚙️',
-            position: { x: 8, y: 0, z: 2 },
+            position: { x: 6, y: -6, z: 4 },
             color: 0xffaa00,
             callback: () => this.showSettings3D(),
             id: 'settings-3d-btn'
