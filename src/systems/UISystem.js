@@ -23,6 +23,9 @@ export class UISystem {
             actions: []
         };
         
+        // Estado anterior do painel (para voltar)
+        this.previousPanelState = null;
+        
         // Elementos 3D da interface
         this.ui3D = {
             container: null,
@@ -1101,10 +1104,10 @@ export class UISystem {
             return;
         }
 
-        // Remover botão de reabertura se existir
-        this.removeReopenButton();
+        // Salvar estado anterior do painel
+        this.previousPanelState = { ...this.panelState };
 
-        // Salvar estado do painel para reabertura
+        // Atualizar estado atual do painel
         this.panelState = {
             title: title,
             content: content,
@@ -1125,12 +1128,21 @@ export class UISystem {
         if (this.elements.panelActions) {
             this.elements.panelActions.innerHTML = '';
 
-            // Adicionar botão de fechar
-            const closeButton = this.createButton('✕ Fechar', () => this.hidePanel());
-            closeButton.style.marginLeft = 'auto';
-            closeButton.style.backgroundColor = 'rgba(255, 71, 87, 0.2)';
-            closeButton.style.borderColor = '#ff4757';
-            closeButton.style.color = '#ff4757';
+            // Adicionar botão de voltar ao estado anterior
+            if (this.previousPanelState && this.previousPanelState.actions.length > 0) {
+                const backButton = this.createButton('⬅ Voltar', () => {
+                    this.showPanel(
+                        this.previousPanelState.title,
+                        this.previousPanelState.content,
+                        this.previousPanelState.actions
+                    );
+                });
+                backButton.style.marginRight = 'auto';
+                backButton.style.backgroundColor = 'rgba(71, 255, 87, 0.2)';
+                backButton.style.borderColor = '#47ff57';
+                backButton.style.color = '#47ff57';
+                this.elements.panelActions.appendChild(backButton);
+            }
 
             // Adicionar novas ações
             actions.forEach(action => {
@@ -1139,6 +1151,11 @@ export class UISystem {
             });
 
             // Adicionar botão de fechar por último
+            const closeButton = this.createButton('✕ Fechar', () => this.hidePanel());
+            closeButton.style.marginLeft = 'auto';
+            closeButton.style.backgroundColor = 'rgba(255, 71, 87, 0.2)';
+            closeButton.style.borderColor = '#ff4757';
+            closeButton.style.color = '#ff4757';
             this.elements.panelActions.appendChild(closeButton);
         }
 
@@ -1241,10 +1258,11 @@ export class UISystem {
             position: { x: 10, y: 6, z: 2 }, // Posição no topo, à direita dos outros
             color: 0x88ff00, // Verde lima para destacar
             callback: () => {
+                // Abrir informações dos módulos
                 this.showPanel(
-                    this.panelState.title, 
-                    this.panelState.content, 
-                    this.panelState.actions
+                    'Módulos de Aprendizado',
+                    '<div>Informações sobre os módulos...</div>',
+                    [] // Adicionar ações específicas dos módulos, se necessário
                 );
             },
             id: 'reopen-3d-button'
@@ -1467,6 +1485,14 @@ export class UISystem {
         };
         
         console.log('🧹 Interface 3D limpa');
+    }
+
+    /**
+     * Restaura o painel anterior salvo
+     */
+    restorePreviousPanel() {
+        const { title, content, actions } = this.panelState;
+        this.showPanel(title, content, actions); // Restaurar painel anterior
     }
 
 }

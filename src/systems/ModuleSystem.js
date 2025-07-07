@@ -117,17 +117,12 @@ export class ModuleSystem {
         const uiSystem = this.app.getSystem('ui');
         console.log('🖥️ Sistema UI:', uiSystem);
         if (uiSystem) {
-            // Processar ações dos botões para incluir contexto do ModuleSystem
             const processedActions = this.processStepActions(currentStep.actions || []);
-            console.log('🔘 Ações processadas:', processedActions);
-            
-            console.log('🖼️ Tentando mostrar painel...');
             uiSystem.showPanel(
                 currentStep.title,
                 currentStep.content,
                 processedActions
             );
-            console.log('✅ Painel solicitado');
         } else {
             console.error('❌ Sistema UI não disponível');
         }
