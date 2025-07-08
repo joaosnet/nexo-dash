@@ -12,7 +12,6 @@ export class DrTuringManager {
         this.model = null;
         this.mixer = null;
         this.animations = null;
-        this.activeAction = null; // Nova propriedade para controle da ação ativa
         this.lighting = null;
         this.speechSystem = null;
         
@@ -53,13 +52,8 @@ export class DrTuringManager {
         if (this.model) {
             this.model.visible = true;
             if (this.lighting) {
-                this.lighting.spotlight.visible = true;
-                this.lighting.fillLight.visible = true;
-                this.lighting.rimLight.visible = true;
+                this.lighting.visible = true;
             }
-            
-            // Reiniciar animações quando mostrar
-            this.addIdleAnimation();
             
             console.log('👩‍🔬 Holograma da Dra. Turing mostrado');
         }
@@ -72,13 +66,8 @@ export class DrTuringManager {
         if (this.model) {
             this.model.visible = false;
             if (this.lighting) {
-                this.lighting.spotlight.visible = false;
-                this.lighting.fillLight.visible = false;
-                this.lighting.rimLight.visible = false;
+                this.lighting.visible = false;
             }
-            
-            // Parar animações quando ocultar
-            this.stopProceduralAnimations();
             
             console.log('👩‍🔬 Holograma da Dra. Turing ocultado');
         }
@@ -345,31 +334,23 @@ export class DrTuringManager {
     addIdleAnimation() {
         if (!this.model) return;
         
-        // Remover animação anterior se existir
-        if (this.idleAnimationId) {
-            cancelAnimationFrame(this.idleAnimationId);
-        }
-        
         const animate = () => {
             if (this.model && this.model.parent && this.model.visible) {
-                this.updateProceduralAnimations();
-                this.idleAnimationId = requestAnimationFrame(animate);
+                const time = Date.now() * 0.001;
+                
+                // Movimento sutil de flutuação
+                this.model.position.y = this.position.y + Math.sin(time * 0.5) * 0.1;
+                
+                // Pequena rotação do tablet
+                const tablet = this.model.getObjectByName('tablet');
+                if (tablet) {
+                    tablet.rotation.y = -Math.PI / 4 + Math.sin(time * 0.3) * 0.1;
+                }
+                
+                requestAnimationFrame(animate);
             }
         };
-        
-        // Iniciar animação
         animate();
-        console.log('🎭 Animação idle iniciada');
-    }
-
-    /**
-     * Para todas as animações procedurais
-     */
-    stopProceduralAnimations() {
-        if (this.idleAnimationId) {
-            cancelAnimationFrame(this.idleAnimationId);
-            this.idleAnimationId = null;
-        }
     }
 
     /**
@@ -409,7 +390,7 @@ export class DrTuringManager {
             const loader = new THREE.FBXLoader();
             
             loader.load(
-                './assets/dra_ana_turing_realista/character-2.fbx',
+                './assets/dra_ana_turing_realista/character.fbx',
                 (fbx) => {
                     console.log('✅ Modelo FBX carregado com sucesso!');
                     this.setupFBXModel(fbx);
@@ -672,51 +653,47 @@ export class DrTuringManager {
     }
 
     /**
-     * Configura todas as animações encontradas no modelo FBX.
+     * Configura animações FBX
      * @param {THREE.Group} fbx - Modelo FBX
      */
     setupFBXAnimations(fbx) {
-        if (!fbx.animations || fbx.animations.length === 0) {
-            console.warn('⚠️ Nenhum clipe de animação encontrado no modelo FBX.');
-            return;
-        }
-        
-        this.mixer = new THREE.AnimationMixer(fbx);
-        this.animations = {};
-
-        console.log('🎭 Encontrando e configurando animações...');
-        console.log(`📊 Total de animações encontradas: ${fbx.animations.length}`);
-        
-        fbx.animations.forEach((clip, index) => {
-            const action = this.mixer.clipAction(clip);
-            const clipName = clip.name.toLowerCase();
+        if (fbx.animations && fbx.animations.length > 0) {
+            this.mixer = new THREE.AnimationMixer(fbx);
             
-            // Mapeia ações baseadas em nomes de arquivos/clips
-            // Usa o nome do clipe sem extensão como chave
-            const actionKey = clipName.split('.')[0].replace(/[^a-z0-9]/gi, '_');
+            const animationActions = {};
+            
+            fbx.animations.forEach((clip, index) => {
+                const action = this.mixer.clipAction(clip);
+                const clipName = clip.name.toLowerCase();
+                
+                // Garante que a primeira animação (geralmente a pose T) não seja a idle
+                if ((clipName.includes('idle') || clipName.includes('breathing')) && !clipName.includes('t-pose')) {
+                    animationActions.idle = action;
+                } else if (clipName.includes('talk') || clipName.includes('speak')) {
+                    animationActions.speak = action;
+                } else if (clipName.includes('wave') || clipName.includes('hello')) {
+                    animationActions.wave = action;
+                }
+            });
 
-            this.animations[actionKey] = action;
-            console.log(` -> [${index}] Ação '${actionKey}' registrada (nome original: '${clip.name}')`);
-
-            // Configura animações que não devem se repetir
-            if (!clipName.includes('idle') && !clipName.includes('breathing') && !clipName.includes('walking')) {
-                action.loop = THREE.LoopOnce;
-                action.clampWhenFinished = true;
-                console.log(`   └─ Configurada como LoopOnce`);
-            } else {
-                console.log(`   └─ Configurada como LoopRepeat`);
+            // Se nenhuma animação 'idle' foi encontrada, usa a primeira animação que não seja a T-pose
+            if (!animationActions.idle && fbx.animations.length > 0) {
+                const firstSafeAnimation = fbx.animations.find(c => !c.name.toLowerCase().includes('t-pose')) || fbx.animations[0];
+                animationActions.idle = this.mixer.clipAction(firstSafeAnimation);
             }
-        });
 
-        console.log('🎯 Animações disponíveis:', Object.keys(this.animations));
-
-        // Define a ação inicial como 'idle' ou a primeira da lista
-        this.activeAction = this.animations.idle || this.animations.breathing || Object.values(this.animations)[0];
-        if (this.activeAction) {
-            this.activeAction.play();
+            if (animationActions.idle) {
+                animationActions.idle.loop = THREE.LoopRepeat;
+                animationActions.idle.play();
+            }
+            
+            this.animations = {
+                ...animationActions,
+                isPlaying: animationActions.idle ? 'idle' : null
+            };
+            
+            console.log('🎭 Animações FBX configuradas');
         }
-        
-        console.log('✅ Sistema de animação configurado. Ação ativa:', this.activeAction ? this.activeAction.getClip().name : 'Nenhuma');
     }
 
     /**
@@ -810,22 +787,16 @@ export class DrTuringManager {
      * Executa sequência inicial
      */
     playInitialSequence() {
-        // Mostrar o holograma primeiro
-        this.showHologram();
-        
+        // Aguardar 1s para garantir que o áudio está ready
         setTimeout(() => {
             this.speak3D(
-                'Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing. Vamos começar?',
-                6000,
-                'talking_2' // Usa uma animação de fala diferente para a introdução
+                'Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?',
+                8000
             );
             
             setTimeout(() => {
-                const helloAnimation = this.getAvailableAnimation('hello', ['wave', 'greeting', 'talk']);
-                if (helloAnimation) {
-                    this.playAnimation(helloAnimation, 0.5);
-                }
-            }, 1500); // Acena um pouco depois de começar a falar
+                this.playAnimation('wave');
+            }, 1000);
         }, 1000);
     }
 
@@ -833,37 +804,29 @@ export class DrTuringManager {
      * Faz a Dra. Turing falar usando síntese de voz
      * @param {string} text - Texto a ser falado
      * @param {number} duration - Duração em ms (usado para animações)
-     * @param {string} speechAnimation - Nome da animação de fala a usar (padrão: 'talking_1')
      */
-    async speak3D(text, duration = 5000, speechAnimation = 'talking_1') {
+    async speak3D(text, duration = 5000) {
         if (!this.model) return;
 
         this.speechSystem.isPlaying = true;
+
+        // Ativar animação de fala
+        this.playAnimation('speak');
         
-        // Usar sistema de fallback para encontrar animação de fala
-        const availableAnimation = this.getAvailableAnimation(speechAnimation, [
-            'talking_2', 'talking_1', 'talk', 'speak', 'idle', 'breathing'
-        ]);
-        
-        if (availableAnimation) {
-            this.playAnimation(availableAnimation, 0.3); // Transição suave para a animação de fala
-        }
-        
+        // Intensificar iluminação
         if (this.lighting && this.lighting.intensifyWhenSpeaking) {
             this.lighting.intensifyWhenSpeaking();
         }
         
+        // Usar síntese de voz em vez de balões de fala
         if (window.speakText) {
             window.speakText(text, 'pt-BR', 1.0, 1.1);
         }
         
-        // Volta para a animação 'idle' após a fala terminar
+        // Voltar ao normal após duração
         setTimeout(() => {
             this.speechSystem.isPlaying = false;
-            const idleAnimation = this.getAvailableAnimation('idle', ['breathing', 'rest']);
-            if (idleAnimation) {
-                this.playAnimation(idleAnimation, 1.0); // Transição longa e suave de volta para 'idle'
-            }
+            this.playAnimation('idle');
             if (this.lighting && this.lighting.normalIntensity) {
                 this.lighting.normalIntensity();
             }
@@ -986,37 +949,32 @@ export class DrTuringManager {
     }
 
     /**
-     * Executa uma transição suave para uma nova animação.
-     * @param {string} actionName - O nome da animação para a qual transicionar (ex: 'hello', 'talking_1').
-     * @param {number} duration - A duração da transição em segundos.
+     * Executa uma animação
+     * @param {string} animationType - Tipo de animação
      */
-    playAnimation(actionName, duration = 0.5) {
-        if (!this.animations || !this.animations[actionName]) {
-            console.warn(`⚠️ Animação '${actionName}' não encontrada`);
-            return;
-        }
+    playAnimation(animationType = 'idle') {
+        if (!this.animations) return;
 
-        const nextAction = this.animations[actionName];
+        if (this.mixer && this.animations[animationType]) {
+            // Parar animações atuais
+            Object.values(this.animations).forEach(action => {
+                if (action && typeof action.stop === 'function') {
+                    action.stop();
+                }
+            });
 
-        if (!nextAction || this.activeAction === nextAction) {
-            return;
+            // Executar nova animação
+            const targetAction = this.animations[animationType];
+            if (targetAction) {
+                targetAction.reset();
+                targetAction.play();
+                this.animations.isPlaying = animationType;
+                console.log(`🎭 Reproduzindo animação: ${animationType}`);
+            }
+        } else {
+            console.log(`🎭 Animação procedural: ${animationType}`);
+            // Executar animações procedurais aqui se necessário
         }
-
-        // Ações que tocam uma vez precisam ser resetadas antes de tocar novamente
-        if (nextAction.loop === THREE.LoopOnce) {
-            nextAction.reset();
-        }
-        
-        nextAction.play();
-        
-        // Fazer crossfade apenas se há uma ação ativa anterior
-        if (this.activeAction) {
-            this.activeAction.crossFadeTo(nextAction, duration, true);
-        }
-        
-        this.activeAction = nextAction;
-        
-        console.log(`🔄 Transicionando para animação: ${actionName}`);
     }
 
     /**
@@ -1073,46 +1031,6 @@ export class DrTuringManager {
     }
 
     /**
-     * Manipulador de mudança de módulo, com reações animadas.
-     * @param {Object} module - Dados do módulo
-     */
-    onModuleChange(module) {
-        const reaction = () => {
-            switch (module.index) {
-                case 0: // Início do projeto
-                    this.speak3D('Olá! Vamos começar nossa jornada de análise de dados.', 4000, 'talking_2');
-                    // Após a fala começar, ela acena.
-                    setTimeout(() => {
-                        const helloAnimation = this.getAvailableAnimation('hello', ['wave', 'greeting']);
-                        if (helloAnimation) {
-                            this.playAnimation(helloAnimation, 0.5);
-                        }
-                    }, 1000);
-                    break;
-                case 1: // Segundo passo
-                    this.speak3D('Ótimo! Agora, vamos importar as bibliotecas necessárias para nosso trabalho.', 5000, 'talking_1');
-                    break;
-                case 2: // Terceiro passo
-                     this.speak3D('Excelente. Com os dados carregados, o próximo passo é a limpeza e pré-processamento.', 6000, 'talking_2');
-                    // Ela assume uma postura de "caminhada no lugar", como se estivesse pensando ou explicando.
-                    setTimeout(() => {
-                        const walkingAnimation = this.getAvailableAnimation('walking', ['walk', 'think', 'idle']);
-                        if (walkingAnimation) {
-                            this.playAnimation(walkingAnimation, 0.5);
-                        }
-                    }, 500);
-                    break;
-                // Adicione mais casos para outros módulos conforme necessário
-                default:
-                    this.speak3D('Continuando nosso progresso.', 3000, 'talking_1');
-                    break;
-            }
-        };
-
-        setTimeout(reaction, 1000);
-    }
-
-    /**
      * Atualiza o sistema (chamado no loop de animação)
      * @param {number} deltaTime - Delta time em segundos
      */
@@ -1122,53 +1040,31 @@ export class DrTuringManager {
             this.mixer.update(deltaTime);
         }
         
-        // Verificar se o modelo existe e está visível
-        if (this.model && this.model.visible) {
-            // Garantir que as animações procedurais estão funcionando
-            this.updateProceduralAnimations();
-        }
+        // Atualizar outras animações procedurais aqui
     }
 
     /**
-     * Atualiza animações procedurais
+     * Manipulador de mudança de módulo
+     * @param {Object} module - Dados do módulo
      */
-    updateProceduralAnimations() {
-        if (!this.model) return;
-        
-        const time = Date.now() * 0.001;
-        
-        // Movimento sutil de flutuação (mais visível para debug)
-        const baseY = this.position.y;
-        const floatAmount = 0.2; // Aumentado para ser mais visível
-        this.model.position.y = baseY + Math.sin(time * 0.8) * floatAmount;
-        
-        // Rotação sutil no eixo Y
-        const baseRotationY = this.rotation.y;
-        const rotationAmount = 0.1;
-        this.model.rotation.y = baseRotationY + Math.sin(time * 0.3) * rotationAmount;
-        
-        // Animar tablet se existir
-        const tablet = this.model.getObjectByName('tablet');
-        if (tablet) {
-            tablet.rotation.y = -Math.PI / 4 + Math.sin(time * 0.4) * 0.15;
-            tablet.rotation.x = -Math.PI / 8 + Math.sin(time * 0.6) * 0.05;
-        }
-        
-        // Animar partículas se existirem
-        const particles = this.model.getObjectByName('data-particles');
-        if (particles) {
-            particles.rotation.y += 0.015;
-            particles.rotation.x += 0.008;
+    onModuleChange(module) {
+        // Reações da Dra. Turing baseadas no módulo
+        const moduleReactions = {
+            0: () => this.speak3D('Vamos começar! Primeiro, vamos calibrar sua estação de trabalho.', 4000),
+            1: () => this.speak3D('Perfeito! Agora vamos carregar o blueprint 3D do nosso projeto.', 4000),
+            2: () => this.speak3D('Excelente! Hora de criar o núcleo do nosso servidor Dash.', 4000)
+        };
+
+        const reaction = moduleReactions[module.index];
+        if (reaction) {
+            setTimeout(reaction, 1000);
         }
     }
 
     /**
-     * Limpa recursos do sistema (versão melhorada)
+     * Limpa recursos do sistema
      */
     dispose() {
-        // Parar animações procedurais
-        this.stopProceduralAnimations();
-        
         // Parar timeouts
         if (this.loadingTimeoutId) {
             clearTimeout(this.loadingTimeoutId);
@@ -1190,44 +1086,9 @@ export class DrTuringManager {
         this.model = null;
         this.mixer = null;
         this.animations = null;
-        this.activeAction = null;
         this.lighting = null;
         this.speechSystem = null;
-        this.idleAnimationId = null;
         
         console.log('🧹 Dr. Turing Manager limpo');
-    }
-
-    /**
-     * Obtém uma animação com fallback inteligente
-     * @param {string} preferredAnimation - Animação preferida
-     * @param {string[]} fallbacks - Lista de fallbacks em ordem de preferência
-     * @returns {string|null} Nome da animação encontrada ou null
-     */
-    getAvailableAnimation(preferredAnimation, fallbacks = []) {
-        if (!this.animations) return null;
-        
-        // Tentar animação preferida primeiro
-        if (this.animations[preferredAnimation]) {
-            return preferredAnimation;
-        }
-        
-        // Tentar fallbacks
-        for (const fallback of fallbacks) {
-            if (this.animations[fallback]) {
-                console.log(`🔄 Usando fallback '${fallback}' para '${preferredAnimation}'`);
-                return fallback;
-            }
-        }
-        
-        // Se nada funcionar, usar primeira animação disponível
-        const firstAnimation = Object.keys(this.animations)[0];
-        if (firstAnimation) {
-            console.log(`⚠️ Usando primeira animação disponível '${firstAnimation}' para '${preferredAnimation}'`);
-            return firstAnimation;
-        }
-        
-        console.warn(`❌ Nenhuma animação encontrada para '${preferredAnimation}'`);
-        return null;
     }
 }
