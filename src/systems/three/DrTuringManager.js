@@ -11,14 +11,48 @@ export class DrTuringManager {
         // Estado da Dra. Turing
         this.model = null;
         this.mixer = null;
-        this.animations = null;
+        this.animations = {}; // Agora será um objeto com as ações das animações
+        this.currentAnimation = null; // Animação atualmente ativa
         this.lighting = null;
         this.speechSystem = null;
+        
+        // Sistema de carregamento de animações
+        this.animationFiles = {
+            hello: './assets/dra_ana_turing_realista/hello.fbx',
+            talking_1: './assets/dra_ana_turing_realista/talking-1.fbx',
+            talking_2: './assets/dra_ana_turing_realista/talking-2.fbx',
+            walking: './assets/dra_ana_turing_realista/walking.fbx'
+        };
+        this.animationsLoaded = 0;
+        this.totalAnimations = Object.keys(this.animationFiles).length;
         
         // Configurações
         this.position = { x: -4, y: 0, z: 5 }; // Ajustado de -8 para -4 para centralizar mais
         this.rotation = { x: 0, y: Math.PI / 6, z: 0 }; // Ajustado para olhar mais para a câmera
         this.scale = { x: 2.5, y: 2.5, z: 2.5 };
+        
+        // Sistema de movimentação espacial
+        this.movementSystem = {
+            isMoving: false,
+            startPosition: { x: 0, y: 0, z: 0 },
+            targetPosition: { x: 0, y: 0, z: 0 },
+            startRotation: { x: 0, y: 0, z: 0 },
+            targetRotation: { x: 0, y: 0, z: 0 },
+            progress: 0,
+            duration: 3.0, // Duração da movimentação em segundos
+            easing: 'easeInOutQuad', // Tipo de easing
+            onComplete: null // Callback ao completar movimento
+        };
+        
+        // Pontos predefinidos no ambiente
+        this.environmentPoints = {
+            home: { x: -4, y: 0, z: 5, rotation: { x: 0, y: Math.PI / 6, z: 0 } }, // Posição inicial
+            center: { x: 0, y: 0, z: 3, rotation: { x: 0, y: 0, z: 0 } }, // Centro do laboratório
+            computer: { x: 3, y: 0, z: 1, rotation: { x: 0, y: -Math.PI / 4, z: 0 } }, // Próximo ao computador
+            whiteboard: { x: -2, y: 0, z: -2, rotation: { x: 0, y: Math.PI / 2, z: 0 } }, // Próximo ao quadro
+            server: { x: 4, y: 0, z: -1, rotation: { x: 0, y: -Math.PI / 3, z: 0 } }, // Próximo ao servidor
+            presentation: { x: 0, y: 0, z: 0, rotation: { x: 0, y: Math.PI, z: 0 } } // Posição de apresentação
+        };
         
         // Timeouts e estados
         this.loadingTimeoutId = null;
@@ -382,7 +416,7 @@ export class DrTuringManager {
     }
 
     /**
-     * Carrega modelo FBX
+     * Carrega modelo FBX principal (SEM animações)
      * @returns {Promise<void>}
      */
     async loadFBXModel() {
@@ -392,9 +426,14 @@ export class DrTuringManager {
             loader.load(
                 './assets/dra_ana_turing_realista/character.fbx',
                 (fbx) => {
-                    console.log('✅ Modelo FBX carregado com sucesso!');
+                    console.log('✅ Modelo FBX base carregado com sucesso!');
                     this.setupFBXModel(fbx);
-                    resolve();
+                    
+                    // Agora carregar as animações separadamente
+                    this.loadAnimations().then(() => {
+                        console.log('🎭 Todas as animações carregadas e integradas!');
+                        resolve();
+                    }).catch(reject);
                 },
                 (progress) => {
                     console.log(`📊 Carregamento FBX: ${(progress.loaded / progress.total * 100).toFixed(1)}%`);
@@ -429,6 +468,77 @@ export class DrTuringManager {
                 }
             );
         });
+    }
+
+    /**
+     * Carrega todas as animações FBX separadamente e adiciona ao mixer
+     * @returns {Promise<void>}
+     */
+    async loadAnimations() {
+        console.log('🎯 Iniciando carregamento de animações separadas...');
+        
+        const loader = new THREE.FBXLoader();
+        const loadPromises = [];
+        
+        // Carregar cada arquivo de animação
+        Object.entries(this.animationFiles).forEach(([name, path]) => {
+            const promise = new Promise((resolve, reject) => {
+                console.log(`📂 Carregando animação: ${name} (${path})`);
+                
+                loader.load(
+                    path,
+                    (animFBX) => {
+                        // Cada arquivo FBX de animação tem um AnimationClip em animFBX.animations[0]
+                        if (animFBX.animations && animFBX.animations.length > 0) {
+                            const clip = animFBX.animations[0];
+                            const action = this.mixer.clipAction(clip);
+                            
+                            // Configurar propriedades da animação
+                            if (name.includes('talking') || name === 'hello' || name === 'walking') {
+                                action.loop = THREE.LoopRepeat;
+                            } else {
+                                action.loop = THREE.LoopOnce;
+                                action.clampWhenFinished = true;
+                            }
+                            
+                            this.animations[name] = action;
+                            this.animationsLoaded++;
+                            
+                            console.log(`✅ Animação '${name}' carregada (${this.animationsLoaded}/${this.totalAnimations})`);
+                            resolve();
+                        } else {
+                            console.warn(`⚠️ Nenhuma animação encontrada em: ${path}`);
+                            resolve(); // Não falhar por causa de um arquivo sem animação
+                        }
+                    },
+                    (progress) => {
+                        // Progress callback opcional
+                    },
+                    (error) => {
+                        console.error(`❌ Erro ao carregar animação ${name}:`, error);
+                        resolve(); // Não falhar por causa de um arquivo que não carregou
+                    }
+                );
+            });
+            
+            loadPromises.push(promise);
+        });
+        
+        // Aguardar todas as animações carregarem
+        await Promise.all(loadPromises);
+        
+        console.log(`🎭 Sistema de animações configurado com ${Object.keys(this.animations).length} animações:`);
+        console.log(`   📋 Animações disponíveis:`, Object.keys(this.animations));
+        
+        // Iniciar com uma animação padrão se disponível
+        if (this.animations.talking_1) {
+            this.playAnimation('talking_1');
+            console.log('🎬 Iniciando com animação talking_1');
+        } else if (Object.keys(this.animations).length > 0) {
+            const firstAnim = Object.keys(this.animations)[0];
+            this.playAnimation(firstAnim);
+            console.log(`🎬 Iniciando com animação: ${firstAnim}`);
+        }
     }
 
     /**
@@ -653,47 +763,33 @@ export class DrTuringManager {
     }
 
     /**
-     * Configura animações FBX
-     * @param {THREE.Group} fbx - Modelo FBX
+     * Configura o AnimationMixer para o modelo base (SEM carregar animações do modelo)
+     * @param {THREE.Group} fbx - Modelo FBX base
      */
     setupFBXAnimations(fbx) {
+        // Criar o mixer apenas com o modelo base
+        this.mixer = new THREE.AnimationMixer(fbx);
+        
+        console.log('🎛️ AnimationMixer configurado para o modelo base');
+        console.log('📋 Animações do modelo base:', fbx.animations?.length || 0);
+        
+        // Se o modelo base tem animações próprias, podemos adicioná-las também
         if (fbx.animations && fbx.animations.length > 0) {
-            this.mixer = new THREE.AnimationMixer(fbx);
-            
-            const animationActions = {};
-            
+            console.log('📦 Adicionando animações do modelo base...');
             fbx.animations.forEach((clip, index) => {
                 const action = this.mixer.clipAction(clip);
                 const clipName = clip.name.toLowerCase();
                 
-                // Garante que a primeira animação (geralmente a pose T) não seja a idle
-                if ((clipName.includes('idle') || clipName.includes('breathing')) && !clipName.includes('t-pose')) {
-                    animationActions.idle = action;
-                } else if (clipName.includes('talk') || clipName.includes('speak')) {
-                    animationActions.speak = action;
-                } else if (clipName.includes('wave') || clipName.includes('hello')) {
-                    animationActions.wave = action;
+                // Mapear nomes das animações do modelo base
+                if (clipName.includes('idle') || clipName.includes('t-pose') || clipName.includes('rest')) {
+                    this.animations.idle = action;
+                    action.loop = THREE.LoopRepeat;
+                    console.log(`   ✅ Animação base 'idle' encontrada: ${clip.name}`);
                 }
             });
-
-            // Se nenhuma animação 'idle' foi encontrada, usa a primeira animação que não seja a T-pose
-            if (!animationActions.idle && fbx.animations.length > 0) {
-                const firstSafeAnimation = fbx.animations.find(c => !c.name.toLowerCase().includes('t-pose')) || fbx.animations[0];
-                animationActions.idle = this.mixer.clipAction(firstSafeAnimation);
-            }
-
-            if (animationActions.idle) {
-                animationActions.idle.loop = THREE.LoopRepeat;
-                animationActions.idle.play();
-            }
-            
-            this.animations = {
-                ...animationActions,
-                isPlaying: animationActions.idle ? 'idle' : null
-            };
-            
-            console.log('🎭 Animações FBX configuradas');
         }
+        
+        // As animações externas serão carregadas por loadAnimations()
     }
 
     /**
@@ -784,18 +880,24 @@ export class DrTuringManager {
     }
 
     /**
-     * Executa sequência inicial
+     * Executa sequência inicial com as novas animações
      */
     playInitialSequence() {
-        // Aguardar 1s para garantir que o áudio está ready
+        // Aguardar 1s para garantir que as animações estejam carregadas
         setTimeout(() => {
             this.speak3D(
                 'Olá! Bem-vindo ao Nexo Dash! Sou a Dra. Ana Turing, sua mentora nesta jornada fascinante. Juntos, construiremos um dashboard completo para análise de doenças cardíacas usando Python e Dash. Está pronto para esta missão?',
-                8000
+                8000,
+                'talking_2' // Usar talking_2 para introdução
             );
             
             setTimeout(() => {
-                this.playAnimation('wave');
+                // Acená-lo após começar a falar
+                if (this.animations.hello) {
+                    this.playAnimation('hello');
+                } else if (this.animations.wave) {
+                    this.playAnimation('wave');
+                }
             }, 1000);
         }, 1000);
     }
@@ -805,20 +907,45 @@ export class DrTuringManager {
      * @param {string} text - Texto a ser falado
      * @param {number} duration - Duração em ms (usado para animações)
      */
-    async speak3D(text, duration = 5000) {
+    /**
+     * Faz a Dra. Turing falar usando síntese de voz com animações apropriadas
+     * @param {string} text - Texto a ser falado
+     * @param {number} duration - Duração em ms (usado para animações)
+     * @param {string} talkAnimation - Animação específica para usar (padrão: talking_1)
+     */
+    async speak3D(text, duration = 5000, talkAnimation = 'talking_1') {
         if (!this.model) return;
 
         this.speechSystem.isPlaying = true;
 
+        // Escolher animação de fala disponível
+        let selectedAnimation = talkAnimation;
+        if (!this.animations[selectedAnimation]) {
+            // Fallback para outras animações de fala
+            if (this.animations.talking_2) {
+                selectedAnimation = 'talking_2';
+            } else if (this.animations.talking_1) {
+                selectedAnimation = 'talking_1';
+            } else if (this.animations.hello) {
+                selectedAnimation = 'hello';
+            } else {
+                console.warn('⚠️ Nenhuma animação de fala encontrada');
+                selectedAnimation = null;
+            }
+        }
+
         // Ativar animação de fala
-        this.playAnimation('speak');
+        if (selectedAnimation) {
+            this.playAnimation(selectedAnimation, 0.2);
+            console.log(`🎭 Usando animação de fala: ${selectedAnimation}`);
+        }
         
         // Intensificar iluminação
         if (this.lighting && this.lighting.intensifyWhenSpeaking) {
             this.lighting.intensifyWhenSpeaking();
         }
         
-        // Usar síntese de voz em vez de balões de fala
+        // Usar síntese de voz
         if (window.speakText) {
             window.speakText(text, 'pt-BR', 1.0, 1.1);
         }
@@ -826,7 +953,15 @@ export class DrTuringManager {
         // Voltar ao normal após duração
         setTimeout(() => {
             this.speechSystem.isPlaying = false;
-            this.playAnimation('idle');
+            
+            // Voltar para animação idle ou primeira disponível
+            if (this.animations.idle) {
+                this.playAnimation('idle', 0.5);
+            } else if (Object.keys(this.animations).length > 0) {
+                const firstAnim = Object.keys(this.animations)[0];
+                this.playAnimation(firstAnim, 0.5);
+            }
+            
             if (this.lighting && this.lighting.normalIntensity) {
                 this.lighting.normalIntensity();
             }
@@ -949,32 +1084,79 @@ export class DrTuringManager {
     }
 
     /**
-     * Executa uma animação
-     * @param {string} animationType - Tipo de animação
+     * Função profissional para trocar animações com transições suaves
+     * @param {string} animationName - Nome da animação a ser executada
+     * @param {number} fadeDuration - Duração da transição em segundos (padrão: 0.3)
+     * @param {boolean} resetTime - Se deve resetar o tempo da animação (padrão: true)
      */
-    playAnimation(animationType = 'idle') {
-        if (!this.animations) return;
-
-        if (this.mixer && this.animations[animationType]) {
-            // Parar animações atuais
-            Object.values(this.animations).forEach(action => {
-                if (action && typeof action.stop === 'function') {
-                    action.stop();
-                }
-            });
-
-            // Executar nova animação
-            const targetAction = this.animations[animationType];
-            if (targetAction) {
-                targetAction.reset();
-                targetAction.play();
-                this.animations.isPlaying = animationType;
-                console.log(`🎭 Reproduzindo animação: ${animationType}`);
-            }
-        } else {
-            console.log(`🎭 Animação procedural: ${animationType}`);
-            // Executar animações procedurais aqui se necessário
+    playAnimation(animationName, fadeDuration = 0.3, resetTime = true) {
+        if (!this.animations || !this.animations[animationName]) {
+            console.warn(`⚠️ Animação '${animationName}' não encontrada. Disponíveis:`, Object.keys(this.animations || {}));
+            return false;
         }
+        
+        const newAction = this.animations[animationName];
+        
+        // Se já está tocando a mesma animação, não fazer nada
+        if (this.currentAnimation === newAction) {
+            return true;
+        }
+        
+        console.log(`🎬 Transicionando para animação: ${animationName}`);
+        
+        // Parar animação atual com fade out
+        if (this.currentAnimation) {
+            this.currentAnimation.fadeOut(fadeDuration);
+        }
+        
+        // Preparar nova animação
+        if (resetTime) {
+            newAction.reset();
+        }
+        
+        // Iniciar nova animação com fade in
+        newAction
+            .setEffectiveTimeScale(1)
+            .setEffectiveWeight(1)
+            .fadeIn(fadeDuration)
+            .play();
+        
+        this.currentAnimation = newAction;
+        
+        return true;
+    }
+
+    /**
+     * Para todas as animações
+     */
+    stopAllAnimations() {
+        if (this.animations) {
+            Object.values(this.animations).forEach(action => {
+                action.stop();
+            });
+        }
+        this.currentAnimation = null;
+        console.log('⏹️ Todas as animações paradas');
+    }
+
+    /**
+     * Verifica se uma animação específica está tocando
+     * @param {string} animationName - Nome da animação
+     * @returns {boolean}
+     */
+    isAnimationPlaying(animationName) {
+        if (!this.animations || !this.animations[animationName]) {
+            return false;
+        }
+        return this.currentAnimation === this.animations[animationName] && this.currentAnimation.isRunning();
+    }
+
+    /**
+     * Lista todas as animações disponíveis
+     * @returns {string[]}
+     */
+    getAvailableAnimations() {
+        return Object.keys(this.animations || {});
     }
 
     /**
@@ -1031,6 +1213,224 @@ export class DrTuringManager {
     }
 
     /**
+     * Move a Dra. Turing para um ponto específico do ambiente
+     * @param {string} pointName - Nome do ponto ('home', 'center', 'computer', etc.)
+     * @param {number} duration - Duração da movimentação em segundos (padrão: 3.0)
+     * @param {string} easing - Tipo de easing (padrão: 'easeInOutQuad')
+     * @param {Function} onComplete - Callback ao completar movimento
+     * @returns {boolean} - true se o movimento foi iniciado, false caso contrário
+     */
+    moveToPoint(pointName, duration = 3.0, easing = 'easeInOutQuad', onComplete = null) {
+        if (!this.model || this.movementSystem.isMoving) {
+            console.warn('⚠️ Não é possível mover: modelo não carregado ou já em movimento');
+            return false;
+        }
+        
+        const targetPoint = this.environmentPoints[pointName];
+        if (!targetPoint) {
+            console.warn(`⚠️ Ponto '${pointName}' não encontrado. Pontos disponíveis:`, Object.keys(this.environmentPoints));
+            return false;
+        }
+        
+        console.log(`🚶‍♀️ Dra. Turing movendo para: ${pointName}`);
+        
+        // Configurar sistema de movimento
+        this.movementSystem.isMoving = true;
+        this.movementSystem.startPosition = { ...this.model.position };
+        this.movementSystem.targetPosition = { x: targetPoint.x, y: targetPoint.y, z: targetPoint.z };
+        this.movementSystem.startRotation = { ...this.model.rotation };
+        this.movementSystem.targetRotation = { ...targetPoint.rotation };
+        this.movementSystem.progress = 0;
+        this.movementSystem.duration = duration;
+        this.movementSystem.easing = easing;
+        this.movementSystem.onComplete = onComplete;
+        
+        // Iniciar animação de walking se disponível
+        if (this.animations.walking) {
+            this.playAnimation('walking', 0.3);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Move a Dra. Turing para uma posição específica (coordenadas customizadas)
+     * @param {Object} targetPos - Posição alvo {x, y, z}
+     * @param {Object} targetRot - Rotação alvo {x, y, z} (opcional)
+     * @param {number} duration - Duração da movimentação em segundos
+     * @param {Function} onComplete - Callback ao completar movimento
+     * @returns {boolean} - true se o movimento foi iniciado
+     */
+    moveToPosition(targetPos, targetRot = null, duration = 3.0, onComplete = null) {
+        if (!this.model || this.movementSystem.isMoving) {
+            console.warn('⚠️ Não é possível mover: modelo não carregado ou já em movimento');
+            return false;
+        }
+        
+        console.log(`🚶‍♀️ Dra. Turing movendo para posição customizada:`, targetPos);
+        
+        // Configurar sistema de movimento
+        this.movementSystem.isMoving = true;
+        this.movementSystem.startPosition = { ...this.model.position };
+        this.movementSystem.targetPosition = { ...targetPos };
+        this.movementSystem.startRotation = { ...this.model.rotation };
+        this.movementSystem.targetRotation = targetRot || { ...this.model.rotation };
+        this.movementSystem.progress = 0;
+        this.movementSystem.duration = duration;
+        this.movementSystem.easing = 'easeInOutQuad';
+        this.movementSystem.onComplete = onComplete;
+        
+        // Iniciar animação de walking se disponível
+        if (this.animations.walking) {
+            this.playAnimation('walking', 0.3);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Para o movimento atual da Dra. Turing
+     */
+    stopMovement() {
+        if (this.movementSystem.isMoving) {
+            this.movementSystem.isMoving = false;
+            console.log('⏹️ Movimento da Dra. Turing interrompido');
+            
+            // Voltar para animação idle se estava caminhando
+            if (this.isAnimationPlaying('walking')) {
+                const firstAnim = Object.keys(this.animations)[0];
+                if (firstAnim && firstAnim !== 'walking') {
+                    this.playAnimation(firstAnim, 0.5);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Função de easing para suavizar movimentos
+     * @param {number} t - Progresso (0-1)
+     * @param {string} type - Tipo de easing
+     * @returns {number} - Valor interpolado
+     */
+    easeFunction(t, type = 'easeInOutQuad') {
+        switch (type) {
+            case 'linear':
+                return t;
+            case 'easeInQuad':
+                return t * t;
+            case 'easeOutQuad':
+                return t * (2 - t);
+            case 'easeInOutQuad':
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            case 'easeInCubic':
+                return t * t * t;
+            case 'easeOutCubic':
+                return (--t) * t * t + 1;
+            case 'easeInOutCubic':
+                return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+            default:
+                return t;
+        }
+    }
+    
+    /**
+     * Interpolação linear entre dois valores
+     * @param {number} start - Valor inicial
+     * @param {number} end - Valor final
+     * @param {number} progress - Progresso (0-1)
+     * @returns {number} - Valor interpolado
+     */
+    lerp(start, end, progress) {
+        return start + (end - start) * progress;
+    }
+    
+    /**
+     * Atualiza o sistema de movimentação
+     * @param {number} deltaTime - Delta time em segundos
+     */
+    updateMovement(deltaTime) {
+        if (!this.movementSystem.isMoving || !this.model) return;
+        
+        // Atualizar progresso
+        this.movementSystem.progress += deltaTime / this.movementSystem.duration;
+        
+        if (this.movementSystem.progress >= 1.0) {
+            // Movimento concluído
+            this.movementSystem.progress = 1.0;
+            this.movementSystem.isMoving = false;
+            
+            // Aplicar posição final exata
+            this.model.position.set(
+                this.movementSystem.targetPosition.x,
+                this.movementSystem.targetPosition.y,
+                this.movementSystem.targetPosition.z
+            );
+            this.model.rotation.set(
+                this.movementSystem.targetRotation.x,
+                this.movementSystem.targetRotation.y,
+                this.movementSystem.targetRotation.z
+            );
+            
+            console.log('✅ Dra. Turing chegou ao destino');
+            
+            // Voltar para animação padrão após o movimento
+            setTimeout(() => {
+                if (this.isAnimationPlaying('walking')) {
+                    const firstAnim = Object.keys(this.animations)[0];
+                    if (firstAnim && firstAnim !== 'walking') {
+                        this.playAnimation(firstAnim, 0.5);
+                    }
+                }
+            }, 500);
+            
+            // Executar callback se fornecido
+            if (this.movementSystem.onComplete) {
+                this.movementSystem.onComplete();
+                this.movementSystem.onComplete = null;
+            }
+            
+            return;
+        }
+        
+        // Aplicar easing
+        const easedProgress = this.easeFunction(this.movementSystem.progress, this.movementSystem.easing);
+        
+        // Interpolação de posição
+        this.model.position.x = this.lerp(
+            this.movementSystem.startPosition.x,
+            this.movementSystem.targetPosition.x,
+            easedProgress
+        );
+        this.model.position.y = this.lerp(
+            this.movementSystem.startPosition.y,
+            this.movementSystem.targetPosition.y,
+            easedProgress
+        );
+        this.model.position.z = this.lerp(
+            this.movementSystem.startPosition.z,
+            this.movementSystem.targetPosition.z,
+            easedProgress
+        );
+        
+        // Interpolação de rotação
+        this.model.rotation.x = this.lerp(
+            this.movementSystem.startRotation.x,
+            this.movementSystem.targetRotation.x,
+            easedProgress
+        );
+        this.model.rotation.y = this.lerp(
+            this.movementSystem.startRotation.y,
+            this.movementSystem.targetRotation.y,
+            easedProgress
+        );
+        this.model.rotation.z = this.lerp(
+            this.movementSystem.startRotation.z,
+            this.movementSystem.targetRotation.z,
+            easedProgress
+        );
+    }
+
+    /**
      * Atualiza o sistema (chamado no loop de animação)
      * @param {number} deltaTime - Delta time em segundos
      */
@@ -1040,25 +1440,78 @@ export class DrTuringManager {
             this.mixer.update(deltaTime);
         }
         
+        // Atualizar sistema de movimentação
+        this.updateMovement(deltaTime);
+        
         // Atualizar outras animações procedurais aqui
     }
 
     /**
-     * Manipulador de mudança de módulo
+     * Manipulador de mudança de módulo com animações e movimentações específicas
      * @param {Object} module - Dados do módulo
      */
     onModuleChange(module) {
-        // Reações da Dra. Turing baseadas no módulo
-        const moduleReactions = {
-            0: () => this.speak3D('Vamos começar! Primeiro, vamos calibrar sua estação de trabalho.', 4000),
-            1: () => this.speak3D('Perfeito! Agora vamos carregar o blueprint 3D do nosso projeto.', 4000),
-            2: () => this.speak3D('Excelente! Hora de criar o núcleo do nosso servidor Dash.', 4000)
+        const reaction = () => {
+            switch (module.index) {
+                case 0: // Início - mover para centro + cumprimento
+                    this.moveToPoint('center', 2.5, 'easeInOutQuad', () => {
+                        this.speak3D('Bem-vindo ao Laboratório Nexo Dash! Vamos começar nossa jornada.', 4000, 'talking_1');
+                        setTimeout(() => {
+                            if (this.animations.hello) {
+                                this.playAnimation('hello');
+                            }
+                        }, 1500);
+                    });
+                    break;
+                    
+                case 1: // Projeto - mover para quadro/apresentação
+                    this.moveToPoint('presentation', 3.0, 'easeInOutCubic', () => {
+                        this.speak3D('Perfeito! Agora vamos projetar o blueprint 3D do nosso sistema.', 4000, 'talking_2');
+                    });
+                    break;
+                    
+                case 2: // Implementação - mover para computador
+                    this.moveToPoint('computer', 2.0, 'easeInOutQuad', () => {
+                        this.speak3D('Excelente! Hora de codificar. Vamos ao computador criar nosso servidor Dash.', 4000, 'talking_1');
+                    });
+                    break;
+                    
+                case 3: // Dados - mover para servidor
+                    this.moveToPoint('server', 2.5, 'easeInOutQuad', () => {
+                        this.speak3D('Agora vamos conectar com o servidor de dados. Seguindo protocolos de segurança.', 4000, 'talking_2');
+                    });
+                    break;
+                    
+                case 4: // Visualização - voltar para centro
+                    this.moveToPoint('center', 2.0, 'easeInOutQuad', () => {
+                        this.speak3D('Momento de criar visualizações incríveis! Observe a magia dos dados.', 4000, 'talking_1');
+                        setTimeout(() => {
+                            if (this.animations.hello) {
+                                this.playAnimation('hello');
+                            }
+                        }, 2000);
+                    });
+                    break;
+                    
+                case 5: // Deploy - mover para whiteboard
+                    this.moveToPoint('whiteboard', 3.0, 'easeInOutCubic', () => {
+                        this.speak3D('Chegou a hora do deploy! Vamos revisar nossa arquitetura final.', 4000, 'talking_2');
+                    });
+                    break;
+                    
+                default:
+                    // Para módulos não específicos, fazer um passeio pelo laboratório
+                    const points = ['center', 'computer', 'home'];
+                    const randomPoint = points[Math.floor(Math.random() * points.length)];
+                    
+                    this.moveToPoint(randomPoint, 2.0, 'easeInOutQuad', () => {
+                        this.speak3D('Continuando nossa jornada pelo laboratório...', 3000, 'talking_1');
+                    });
+                    break;
+            }
         };
 
-        const reaction = moduleReactions[module.index];
-        if (reaction) {
-            setTimeout(reaction, 1000);
-        }
+        setTimeout(reaction, 1000);
     }
 
     /**
@@ -1090,5 +1543,201 @@ export class DrTuringManager {
         this.speechSystem = null;
         
         console.log('🧹 Dr. Turing Manager limpo');
+    }
+
+    /**
+     * Função de debug para testar animações (APENAS PARA DESENVOLVIMENTO)
+     * Execute no console: window.app.getSystem('ThreeJSSystem').drTuringManager.debugAnimations()
+     */
+    debugAnimations() {
+        console.log('🎭 DEBUG: Sistema de Animações da Dra. Turing');
+        console.log('📊 Status do Sistema:');
+        console.log(`   - Modelo carregado: ${!!this.model}`);
+        console.log(`   - Mixer ativo: ${!!this.mixer}`);
+        console.log(`   - Total de animações: ${Object.keys(this.animations || {}).length}`);
+        console.log(`   - Animação atual: ${this.currentAnimation?.getClip?.()?.name || 'Nenhuma'}`);
+        
+        console.log('📋 Animações Disponíveis:');
+        Object.keys(this.animations || {}).forEach(name => {
+            const action = this.animations[name];
+            const isPlaying = action.isRunning();
+            const weight = action.getEffectiveWeight();
+            console.log(`   - ${name}: ${isPlaying ? '▶️ Tocando' : '⏸️ Parada'} (peso: ${weight.toFixed(2)})`);
+        });
+        
+        console.log('🎮 Comandos de Teste:');
+        console.log('   drTuring.playAnimation("hello") - Animação de cumprimento');
+        console.log('   drTuring.playAnimation("talking_1") - Fala modo 1');
+        console.log('   drTuring.playAnimation("talking_2") - Fala modo 2');
+        console.log('   drTuring.playAnimation("walking") - Caminhada');
+        console.log('   drTuring.speak3D("Olá!", 3000, "talking_1") - Falar com animação');
+        console.log('   drTuring.stopAllAnimations() - Parar tudo');
+        
+        // Tornar disponível globalmente para debug
+        window.drTuring = this;
+        
+        return {
+            model: !!this.model,
+            mixer: !!this.mixer,
+            animations: Object.keys(this.animations || {}),
+            currentAnimation: this.currentAnimation?.getClip?.()?.name || null
+        };
+    }
+    
+    /**
+     * Função de debug para testar sistema de movimentação (APENAS PARA DESENVOLVIMENTO)
+     * Execute no console: window.app.getSystem('ThreeJSSystem').drTuringManager.debugMovement()
+     */
+    debugMovement() {
+        console.log('🚶‍♀️ DEBUG: Sistema de Movimentação da Dra. Turing');
+        console.log('📊 Status do Sistema:');
+        console.log(`   - Modelo carregado: ${!!this.model}`);
+        console.log(`   - Em movimento: ${this.movementSystem.isMoving}`);
+        if (this.model) {
+            console.log(`   - Posição atual: x=${this.model.position.x.toFixed(2)}, y=${this.model.position.y.toFixed(2)}, z=${this.model.position.z.toFixed(2)}`);
+            console.log(`   - Rotação atual: x=${this.model.rotation.x.toFixed(2)}, y=${this.model.rotation.y.toFixed(2)}, z=${this.model.rotation.z.toFixed(2)}`);
+        }
+        
+        if (this.movementSystem.isMoving) {
+            console.log(`   - Progresso: ${(this.movementSystem.progress * 100).toFixed(1)}%`);
+            console.log(`   - Destino: x=${this.movementSystem.targetPosition.x}, y=${this.movementSystem.targetPosition.y}, z=${this.movementSystem.targetPosition.z}`);
+        }
+        
+        console.log('📍 Pontos Disponíveis:');
+        Object.entries(this.environmentPoints).forEach(([name, point]) => {
+            console.log(`   - ${name}: x=${point.x}, y=${point.y}, z=${point.z}`);
+        });
+        
+        console.log('🎮 Comandos de Movimentação:');
+        console.log('   drTuring.moveToPoint("center") - Mover para centro');
+        console.log('   drTuring.moveToPoint("computer") - Mover para computador');
+        console.log('   drTuring.moveToPoint("whiteboard") - Mover para quadro');
+        console.log('   drTuring.moveToPoint("server") - Mover para servidor');
+        console.log('   drTuring.moveToPoint("home") - Voltar para casa');
+        console.log('   drTuring.stopMovement() - Parar movimento atual');
+        
+        console.log('🎭 Demonstrações:');
+        console.log('   drTuring.demonstrateMovement() - Demo completa de movimentação');
+        console.log('   drTuring.tourLaboratory() - Passeio narrado pelo laboratório');
+        console.log('   drTuring.moveToPosition({x: 2, y: 0, z: 3}) - Posição customizada');
+        
+        // Tornar disponível globalmente para debug
+        window.drTuring = this;
+        
+        return {
+            model: !!this.model,
+            isMoving: this.movementSystem.isMoving,
+            currentPosition: this.model ? { ...this.model.position } : null,
+            availablePoints: Object.keys(this.environmentPoints)
+        };
+    }
+    
+    /**
+     * Demonstração do sistema de movimentação
+     */
+    demonstrateMovement() {
+        console.log('🎬 Iniciando demonstração de movimentação...');
+        
+        if (this.movementSystem.isMoving) {
+            console.log('⚠️ Já em movimento. Pare o movimento atual primeiro: drTuring.stopMovement()');
+            return false;
+        }
+        
+        const sequence = [
+            { point: 'center', message: 'Movendo para o centro do laboratório...', duration: 2.0 },
+            { point: 'computer', message: 'Indo para a estação de desenvolvimento...', duration: 2.5 },
+            { point: 'server', message: 'Verificando o servidor de dados...', duration: 2.0 },
+            { point: 'whiteboard', message: 'Analisando o quadro holográfico...', duration: 2.5 },
+            { point: 'home', message: 'Retornando para a base de operações...', duration: 3.0 }
+        ];
+        
+        let currentIndex = 0;
+        
+        const executeNext = () => {
+            if (currentIndex >= sequence.length) {
+                console.log('✅ Demonstração concluída!');
+                this.speak3D('Demonstração de movimentação concluída com sucesso!', 3000, 'talking_1');
+                return;
+            }
+            
+            const step = sequence[currentIndex];
+            console.log(`🚶‍♀️ ${step.message}`);
+            
+            this.moveToPoint(step.point, step.duration, 'easeInOutQuad', () => {
+                currentIndex++;
+                setTimeout(executeNext, 1000); // Pausa entre movimentos
+            });
+        };
+        
+        executeNext();
+        return true;
+    }
+    
+    /**
+     * Passeio pelo laboratório com narração
+     */
+    tourLaboratory() {
+        console.log('🏛️ Iniciando tour guiado pelo laboratório...');
+        
+        if (this.movementSystem.isMoving) {
+            console.log('⚠️ Já em movimento. Pare o movimento atual primeiro: drTuring.stopMovement()');
+            return false;
+        }
+        
+        const tour = [
+            { 
+                point: 'center', 
+                message: 'Bem-vindos ao coração do laboratório! Aqui processamos dados em tempo real.',
+                animation: 'hello',
+                duration: 2.0
+            },
+            { 
+                point: 'computer', 
+                message: 'Esta é nossa estação de desenvolvimento. Aqui codificamos o futuro.',
+                animation: 'talking_2',
+                duration: 2.5
+            },
+            { 
+                point: 'server', 
+                message: 'Nosso servidor de dados. Potência computacional para análises complexas.',
+                animation: 'talking_1',
+                duration: 2.0
+            },
+            { 
+                point: 'whiteboard', 
+                message: 'O quadro holográfico mostra nossas descobertas e insights.',
+                animation: 'talking_2',
+                duration: 2.5
+            },
+            { 
+                point: 'home', 
+                message: 'E aqui é minha base de operações. Pronta para nossa próxima missão!',
+                animation: 'hello',
+                duration: 3.0
+            }
+        ];
+        
+        let currentIndex = 0;
+        
+        const executeNext = () => {
+            if (currentIndex >= tour.length) {
+                console.log('✅ Tour concluído!');
+                return;
+            }
+            
+            const step = tour[currentIndex];
+            console.log(`🏛️ Visitando: ${step.point}`);
+            
+            this.moveToPoint(step.point, step.duration, 'easeInOutCubic', () => {
+                // Falar sobre o local
+                this.speak3D(step.message, 4000, step.animation);
+                
+                currentIndex++;
+                setTimeout(executeNext, 5000); // Tempo para narração
+            });
+        };
+        
+        executeNext();
+        return true;
     }
 }
